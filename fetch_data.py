@@ -53,6 +53,31 @@ ETF_COUNTRY = ["EWJ", "EWY", "INDA", "MCHI", "FXI", "EWH", "EWU", "EWQ", "EWG",
                "EWZ", "EWT", "EWA", "EWC", "EWL", "EWP", "EWS", "TUR", "EWW",
                "EWI", "EWN", "EWD", "EWO", "EPHE", "THD", "VNM", "EIDO"]
 
+# Human-readable label for each ETF (shown in the Name / Country column)
+ETF_NAMES = {
+    # S&P style + sector SPDRs
+    "IVV": "iShares Core S&P 500", "IVW": "S&P 500 Growth", "IVE": "S&P 500 Value",
+    "IJH": "S&P MidCap 400", "IJK": "MidCap 400 Growth", "IJJ": "MidCap 400 Value",
+    "IJR": "S&P SmallCap 600", "IJT": "SmallCap 600 Growth", "IJS": "SmallCap 600 Value",
+    "XLB": "Materials", "XLC": "Communication Services", "XLE": "Energy",
+    "XLF": "Financials", "XLI": "Industrials", "XLK": "Technology",
+    "XLP": "Consumer Staples", "XLRE": "Real Estate", "XLU": "Utilities",
+    "XLV": "Health Care", "XLY": "Consumer Discretionary",
+    # Equal-weight (Invesco)
+    "RSP": "S&P 500 Equal Weight", "RSPG": "Energy EW", "RSPT": "Technology EW",
+    "RSPF": "Financials EW", "RSPN": "Industrials EW", "RSPD": "Consumer Disc. EW",
+    "RSPU": "Utilities EW", "RSPM": "Materials EW", "RSPH": "Health Care EW",
+    "RSPR": "Real Estate EW", "RSPS": "Consumer Staples EW", "RSPC": "Comm. Services EW",
+    # Country
+    "EWJ": "Japan", "EWY": "South Korea", "INDA": "India", "MCHI": "China",
+    "FXI": "China Large-Cap", "EWH": "Hong Kong", "EWU": "United Kingdom",
+    "EWQ": "France", "EWG": "Germany", "EWZ": "Brazil", "EWT": "Taiwan",
+    "EWA": "Australia", "EWC": "Canada", "EWL": "Switzerland", "EWP": "Spain",
+    "EWS": "Singapore", "TUR": "Turkey", "EWW": "Mexico", "EWI": "Italy",
+    "EWN": "Netherlands", "EWD": "Sweden", "EWO": "Austria", "EPHE": "Philippines",
+    "THD": "Thailand", "VNM": "Vietnam", "EIDO": "Indonesia",
+}
+
 NASDAQ_URL = ("https://api.nasdaq.com/api/screener/stocks"
               "?tableonly=true&limit=10000&download=true")
 NASDAQ_HEADERS = {
@@ -280,9 +305,10 @@ def etf_rows(etf_syms, metrics):
         m = metrics.get(s)
         if not m:
             continue
-        rows.append({"sym": s, **{k: m.get(k) for k in
-                     list(TIMEFRAMES) + ["ytd", "price", "adr", "dollar_vol",
-                                         "pct_from_hi", "new_high", "new_low"]}})
+        rows.append({"sym": s, "name": ETF_NAMES.get(s, s),
+                     **{k: m.get(k) for k in
+                        list(TIMEFRAMES) + ["ytd", "price", "adr", "dollar_vol",
+                                            "pct_from_hi", "new_high", "new_low"]}})
     rows.sort(key=lambda r: (r.get("m1") is None, -(r.get("m1") or 0)))
     return rows
 
