@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Pulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090d; --bg2:#0c0f15; --bg3:#111520; --bg4:#161b26;
+  --border:#1c2535; --border2:#243044;
+  --accent:#00c8ff; --green:#00e676; --red:#ff3355; --amber:#ffb300;
+  --text:#c8d8ea; --text2:#7292b0; --text3:#3d5a78;
+  --mono:'IBM Plex Mono',monospace; --sans:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;padding:14px}
+.wrap{max-width:1680px;margin:0 auto}
+/* header */
+.hdr{display:flex;align-items:center;gap:16px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;position:relative;overflow:hidden}
+.hdr::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent) 40%,var(--green) 70%,transparent)}
+.logo{font-size:17px;font-weight:600;letter-spacing:3px;color:var(--accent)}
+.logo em{color:var(--text3);font-style:normal}
+.badge{font-size:9px;letter-spacing:1px;padding:4px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;color:var(--text2)}
+.badge.live{color:var(--green);border-color:rgba(0,230,118,.3)}
+.badge.demo{color:var(--amber);border-color:rgba(255,179,0,.3)}
+.spacer{margin-left:auto}
+/* gainers tape */
+.tape{display:flex;align-items:center;gap:0;margin-top:8px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.tape-lbl{flex:none;padding:8px 12px;font-size:9px;letter-spacing:1.5px;color:var(--text3);background:var(--bg3);border-right:1px solid var(--border)}
+.tape-scroll{display:flex;gap:18px;padding:8px 14px;overflow-x:auto;white-space:nowrap}
+.tape-scroll::-webkit-scrollbar{height:0}
+.chip{font-size:11px}
+.chip b{color:var(--text)}
+/* tabs */
+.tabs{display:flex;gap:4px;margin-top:10px}
+.tab{padding:9px 18px;border:1px solid var(--border);border-bottom:none;border-radius:4px 4px 0 0;background:var(--bg2);color:var(--text2);font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:.12s}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--accent);background:var(--bg3);border-color:var(--border2);font-weight:600}
+/* table */
+.panel{background:var(--bg2);border:1px solid var(--border2);border-radius:0 4px 4px 4px;overflow:hidden}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{position:sticky;top:0;padding:8px 10px;text-align:right;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);background:var(--bg3);border-bottom:1px solid var(--border2);white-space:nowrap;cursor:pointer;user-select:none}
+thead th:first-child,thead th.l{text-align:left}
+thead th:hover{color:var(--text)}
+thead th .ar{color:var(--accent);font-size:8px}
+tbody tr.grp{border-bottom:1px solid rgba(28,37,53,.6);cursor:pointer;transition:background .1s}
+tbody tr.grp:hover{background:rgba(0,200,255,.04)}
+tbody tr.grp.open{background:rgba(0,200,255,.06)}
+td{padding:6px 10px;text-align:right;white-space:nowrap}
+td:first-child,td.l{text-align:left}
+.gname{color:var(--text);font-weight:500}
+.gname .arr{display:inline-block;width:12px;color:var(--text3);transition:transform .15s}
+tr.open .gname .arr{transform:rotate(90deg);color:var(--accent)}
+.cnt{color:var(--text3);font-size:10px}
+.sym{color:var(--accent);font-weight:500}
+.muted{color:var(--text3)}
+.nh{color:var(--green);font-weight:600}
+.nl{color:var(--red);font-weight:600}
+.zero{color:var(--text3)}
+/* detail */
+tr.detail{display:none}
+tr.detail.show{display:table-row}
+tr.detail > td{padding:0;background:var(--bg4)}
+.sub{width:100%;border-collapse:collapse}
+.sub th{padding:5px 10px;font-size:8.5px;letter-spacing:1px;color:var(--text3);text-align:right;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.sub th:first-child{text-align:left;padding-left:30px}
+.sub td{padding:4px 10px;font-size:11px;border-bottom:1px solid rgba(28,37,53,.35)}
+.sub td:first-child{padding-left:30px}
+.sub tr:last-child td{border-bottom:none}
+.flag-nh{background:rgba(0,230,118,.14);color:var(--green);padding:1px 6px;border-radius:2px;font-size:9px;letter-spacing:.5px}
+.flag-nl{background:rgba(255,51,85,.14);color:var(--red);padding:1px 6px;border-radius:2px;font-size:9px;letter-spacing:.5px}
+.tklist{padding:10px 14px 12px 30px;line-height:1.9}
+.tklist .t{display:inline-block;margin-right:8px;font-size:11px}
+.foot{margin-top:10px;font-size:9.5px;color:var(--text3);letter-spacing:.5px;display:flex;gap:6px;align-items:center}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block}
+@media(max-width:760px){ .tab{padding:8px 11px;font-size:10px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <div class="logo">MARKET<em>//</em>PULSE</div>
+    <span class="badge" id="uniBadge">— names</span>
+    <span class="badge" id="srcBadge">loading…</span>
+    <div class="spacer"></div>
+    <span class="badge" id="asofBadge">—</span>
+  </div>
+
+  <div class="tape">
+    <div class="tape-lbl">TOP GAINERS</div>
+    <div class="tape-scroll" id="tape"></div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="panel scroll"><div id="view"></div></div>
+
+  <div class="foot"><span class="dot"></span>
+    <span id="footNote">Reads data/data.json · rebuilt daily by your GitHub Action · performance computed from Yahoo Finance, grouped by NASDAQ industry</span>
+  </div>
+</div>
+
+<script>
+const SAMPLE = {"generated_at":"2026-11-04T20:18:09.203743+00:00","universe_size":35,"params":{"min_market_cap":800000000,"adr":false,"country":"United States"},"tabs":{"themes":[{"name":"Semiconductors","count":6,"d1":-1.63,"w1":-1.54,"m1":5.56,"m3":16.64,"m6":52.12,"m12":127.25,"ytd":90.5,"new_highs":1,"new_lows":0,"tickers":["ARM","AVGO","MU","NVDA","SMCI","AMD"]},{"name":"Banks - Regional","count":5,"d1":0.05,"w1":0.65,"m1":2.86,"m3":1.95,"m6":5.82,"m12":21.24,"ytd":15.54,"new_highs":0,"new_lows":0,"tickers":["RF","ZION","KEY","WAL","CFG"]},{"name":"Gold","count":4,"d1":-0.36,"w1":0.03,"m1":1.94,"m3":7.76,"m6":24.64,"m12":72.37,"ytd":54.77,"new_highs":2,"new_lows":0,"tickers":["KGC","AEM","NEM","AU"]},{"name":"Software - Infrastructure","count":5,"d1":-0.85,"w1":-0.77,"m1":-0.51,"m3":-0.81,"m6":1.14,"m12":32.89,"ytd":28.77,"new_highs":1,"new_lows":0,"tickers":["PANW","PLTR","NET","NOW","CRWD"]},{"name":"Residential Construction","count":5,"d1":0.51,"w1":-0.44,"m1":-1.77,"m3":9.63,"m6":25.65,"m12":60.06,"ytd":46.3,"new_highs":1,"new_lows":0,"tickers":["LEN","DHI","TOL","PHM","NVR"]},{"name":"Biotechnology","count":5,"d1":-1.06,"w1":-1.64,"m1":-4.4,"m3":-4.15,"m6":10.36,"m12":9.52,"ytd":1.71,"new_highs":1,"new_lows":1,"tickers":["NBIX","VKTX","EXEL","ALNY","CRSP"]},{"name":"Oil & Gas E&P","count":5,"d1":-0.06,"w1":-2.25,"m1":-10.59,"m3":-25.31,"m6":-21.98,"m12":-34.83,"ytd":-31.14,"new_highs":0,"new_lows":2,"tickers":["FANG","CTRA","EOG","DVN","MTDR"]}],"groups":[{"name":"Financial","count":5,"d1":0.05,"w1":0.65,"m1":2.86,"m3":1.95,"m6":5.82,"m12":21.24,"ytd":15.54,"new_highs":0,"new_lows":0,"tickers":["RF","ZION","KEY","WAL","CFG"]},{"name":"Technology","count":11,"d1":-1.27,"w1":-1.19,"m1":2.8,"m3":8.71,"m6":28.95,"m12":84.36,"ytd":62.44,"new_highs":2,"new_lows":0,"tickers":["ARM","AVGO","PANW","MU","PLTR","NVDA","SMCI","NET","NOW","AMD","CRWD"]},{"name":"Basic Materials","count":4,"d1":-0.36,"w1":0.03,"m1":1.94,"m3":7.76,"m6":24.64,"m12":72.37,"ytd":54.77,"new_highs":2,"new_lows":0,"tickers":["KGC","AEM","NEM","AU"]},{"name":"Consumer Cyclical","count":5,"d1":0.51,"w1":-0.44,"m1":-1.77,"m3":9.63,"m6":25.65,"m12":60.06,"ytd":46.3,"new_highs":1,"new_lows":0,"tickers":["LEN","DHI","TOL","PHM","NVR"]},{"name":"Healthcare","count":5,"d1":-1.06,"w1":-1.64,"m1":-4.4,"m3":-4.15,"m6":10.36,"m12":9.52,"ytd":1.71,"new_highs":1,"new_lows":1,"tickers":["NBIX","VKTX","EXEL","ALNY","CRSP"]},{"name":"Energy","count":5,"d1":-0.06,"w1":-2.25,"m1":-10.59,"m3":-25.31,"m6":-21.98,"m12":-34.83,"ytd":-31.14,"new_highs":0,"new_lows":2,"tickers":["FANG","CTRA","EOG","DVN","MTDR"]}],"sp":[{"sym":"XLP","d1":-0.14,"w1":3.39,"m1":8.18,"m3":19.98,"m6":22.15,"m12":47.8,"ytd":41.59,"price":488.67,"adr":2.53,"dollar_vol":6415863108.009332,"pct_from_hi":-1.38,"new_high":false,"new_low":false},{"sym":"IJT","d1":1.14,"w1":-2.03,"m1":5.34,"m3":-0.72,"m6":8.01,"m12":21.49,"ytd":14.01,"price":260.1,"adr":2.53,"dollar_vol":4043069814.005896,"pct_from_hi":-6.02,"new_high":false,"new_low":false},{"sym":"XLF","d1":2.97,"w1":4.87,"m1":5.34,"m3":9.83,"m6":5.52,"m12":-2.77,"ytd":-6.76,"price":333.0,"adr":2.53,"dollar_vol":7738004587.833172,"pct_from_hi":-11.95,"new_high":false,"new_low":false},{"sym":"XLY","d1":1.33,"w1":2.67,"m1":4.79,"m3":-1.38,"m6":14.1,"m12":15.28,"ytd":20.16,"price":547.87,"adr":2.53,"dollar_vol":2536804724.1814713,"pct_from_hi":-3.46,"new_high":false,"new_low":false},{"sym":"IJK","d1":-1.59,"w1":4.89,"m1":4.08,"m3":6.72,"m6":1.87,"m12":-3.26,"ytd":1.79,"price":122.27,"adr":2.53,"dollar_vol":1037415294.179767,"pct_from_hi":-8.45,"new_high":false,"new_low":false},{"sym":"IJR","d1":1.49,"w1":-2.5,"m1":2.76,"m3":-9.64,"m6":9.59,"m12":34.63,"ytd":29.07,"price":177.91,"adr":2.53,"dollar_vol":621862053.240242,"pct_from_hi":-12.53,"new_high":false,"new_low":false},{"sym":"IJS","d1":-0.27,"w1":2.06,"m1":2.37,"m3":10.94,"m6":5.95,"m12":1.24,"ytd":-3.19,"price":193.37,"adr":2.53,"dollar_vol":1205929021.4644773,"pct_from_hi":-10.83,"new_high":false,"new_low":false},{"sym":"XLU","d1":1.73,"w1":4.33,"m1":0.3,"m3":-9.45,"m6":-13.7,"m12":9.55,"ytd":6.45,"price":118.71,"adr":2.53,"dollar_vol":2305225401.9665184,"pct_from_hi":-15.44,"new_high":false,"new_low":false},{"sym":"XLC","d1":3.32,"w1":-3.73,"m1":0.29,"m3":-7.79,"m6":-5.39,"m12":13.48,"ytd":15.78,"price":556.8,"adr":2.53,"dollar_vol":2363601663.857453,"pct_from_hi":-9.64,"new_high":false,"new_low":false},{"sym":"XLRE","d1":0.87,"w1":-1.89,"m1":-1.09,"m3":-4.94,"m6":-1.59,"m12":-0.94,"ytd":-1.51,"price":229.39,"adr":2.53,"dollar_vol":6843259143.690765,"pct_from_hi":-17.05,"new_high":false,"new_low":false},{"sym":"XLB","d1":-0.88,"w1":1.28,"m1":-1.63,"m3":8.18,"m6":19.8,"m12":6.7,"ytd":12.35,"price":358.66,"adr":2.53,"dollar_vol":2940695097.1019607,"pct_from_hi":-5.03,"new_high":false,"new_low":false},{"sym":"IVW","d1":-0.13,"w1":2.36,"m1":-2.19,"m3":-3.01,"m6":7.78,"m12":0.93,"ytd":7.16,"price":111.25,"adr":2.53,"dollar_vol":3161133967.203232,"pct_from_hi":-7.0,"new_high":false,"new_low":false},{"sym":"IVV","d1":0.58,"w1":0.44,"m1":-2.74,"m3":7.19,"m6":25.6,"m12":80.09,"ytd":76.51,"price":624.46,"adr":2.53,"dollar_vol":7734425930.670218,"pct_from_hi":-6.45,"new_high":false,"new_low":false},{"sym":"XLK","d1":2.79,"w1":0.96,"m1":-3.6,"m3":9.58,"m6":19.3,"m12":18.2,"ytd":12.86,"price":493.92,"adr":2.53,"dollar_vol":7994633255.309281,"pct_from_hi":-5.83,"new_high":false,"new_low":false},{"sym":"IJJ","d1":-0.02,"w1":-0.37,"m1":-3.84,"m3":7.76,"m6":3.46,"m12":-23.22,"ytd":-16.9,"price":124.15,"adr":2.53,"dollar_vol":3433672141.523033,"pct_from_hi":-24.33,"new_high":false,"new_low":false},{"sym":"IJH","d1":-4.98,"w1":-5.5,"m1":-3.88,"m3":2.28,"m6":-6.64,"m12":-2.01,"ytd":-2.82,"price":340.39,"adr":2.53,"dollar_vol":633386240.0066466,"pct_from_hi":-10.3,"new_high":false,"new_low":false},{"sym":"XLI","d1":0.63,"w1":1.4,"m1":-5.06,"m3":2.69,"m6":-6.59,"m12":-26.14,"ytd":-21.98,"price":283.46,"adr":2.53,"dollar_vol":7415972704.164902,"pct_from_hi":-27.54,"new_high":false,"new_low":false},{"sym":"XLV","d1":-1.32,"w1":-2.97,"m1":-5.36,"m3":8.6,"m6":15.01,"m12":8.46,"ytd":8.92,"price":374.95,"adr":2.53,"dollar_vol":7059823543.143986,"pct_from_hi":-11.31,"new_high":false,"new_low":false},{"sym":"IVE","d1":-2.5,"w1":-2.09,"m1":-6.59,"m3":-2.68,"m6":-16.17,"m12":-28.68,"ytd":-26.05,"price":239.3,"adr":2.53,"dollar_vol":5513524875.084553,"pct_from_hi":-30.36,"new_high":false,"new_low":false},{"sym":"XLE","d1":0.09,"w1":-0.04,"m1":-7.79,"m3":-9.32,"m6":-2.87,"m12":-34.45,"ytd":-29.91,"price":196.24,"adr":2.53,"dollar_vol":113406160.9952422,"pct_from_hi":-36.95,"new_high":false,"new_low":false}],"eqwt":[{"sym":"RSPD","d1":0.46,"w1":2.5,"m1":13.72,"m3":26.45,"m6":15.8,"m12":17.27,"ytd":15.34,"price":69.19,"adr":2.53,"dollar_vol":281282241.88831854,"pct_from_hi":-1.23,"new_high":true,"new_low":false},{"sym":"RSPG","d1":0.69,"w1":2.14,"m1":13.02,"m3":10.88,"m6":0.46,"m12":48.77,"ytd":19.55,"price":319.53,"adr":2.53,"dollar_vol":8036717296.781194,"pct_from_hi":-2.35,"new_high":false,"new_low":false},{"sym":"RSP","d1":1.73,"w1":4.93,"m1":6.75,"m3":2.71,"m6":-10.0,"m12":-13.46,"ytd":-5.73,"price":345.1,"adr":2.53,"dollar_vol":4206097352.67088,"pct_from_hi":-16.58,"new_high":false,"new_low":false},{"sym":"RSPS","d1":1.15,"w1":-3.1,"m1":4.17,"m3":-10.93,"m6":-13.3,"m12":-14.23,"ytd":-8.97,"price":241.53,"adr":2.53,"dollar_vol":5793948872.86645,"pct_from_hi":-18.83,"new_high":false,"new_low":false},{"sym":"RSPM","d1":1.48,"w1":2.24,"m1":3.16,"m3":4.84,"m6":9.49,"m12":-5.35,"ytd":-19.16,"price":163.21,"adr":2.53,"dollar_vol":730602515.8112357,"pct_from_hi":-20.63,"new_high":false,"new_low":false},{"sym":"RSPC","d1":-1.23,"w1":0.25,"m1":1.72,"m3":5.98,"m6":20.57,"m12":39.97,"ytd":25.94,"price":147.76,"adr":2.53,"dollar_vol":1604079001.692334,"pct_from_hi":-3.26,"new_high":false,"new_low":false},{"sym":"RSPH","d1":0.68,"w1":0.53,"m1":-0.57,"m3":-6.4,"m6":-12.49,"m12":-16.92,"ytd":-17.31,"price":67.41,"adr":2.53,"dollar_vol":737737638.6879729,"pct_from_hi":-23.85,"new_high":false,"new_low":false},{"sym":"RSPU","d1":1.3,"w1":-1.6,"m1":-0.6,"m3":1.73,"m6":-5.5,"m12":-17.0,"ytd":-15.74,"price":386.94,"adr":2.53,"dollar_vol":8496238275.412997,"pct_from_hi":-19.9,"new_high":false,"new_low":false},{"sym":"RSPT","d1":-0.22,"w1":-0.47,"m1":-1.2,"m3":-4.97,"m6":-10.65,"m12":-17.14,"ytd":-13.87,"price":133.16,"adr":2.53,"dollar_vol":1302663382.887788,"pct_from_hi":-23.42,"new_high":false,"new_low":false},{"sym":"RSPN","d1":0.54,"w1":-3.11,"m1":-3.96,"m3":3.75,"m6":12.62,"m12":32.18,"ytd":31.67,"price":48.17,"adr":2.53,"dollar_vol":1078891669.4790237,"pct_from_hi":-8.37,"new_high":false,"new_low":false},{"sym":"RSPR","d1":0.87,"w1":1.33,"m1":-8.91,"m3":-5.76,"m6":-0.41,"m12":36.85,"ytd":45.49,"price":440.05,"adr":2.53,"dollar_vol":2851397457.5387053,"pct_from_hi":-13.21,"new_high":false,"new_low":false},{"sym":"RSPF","d1":-0.21,"w1":-2.89,"m1":-9.82,"m3":4.96,"m6":11.89,"m12":17.43,"ytd":11.9,"price":575.56,"adr":2.53,"dollar_vol":16094996195.867954,"pct_from_hi":-12.93,"new_high":false,"new_low":false}],"country":[{"sym":"EWD","d1":2.21,"w1":-0.12,"m1":16.04,"m3":12.8,"m6":17.74,"m12":5.41,"ytd":0.68,"price":432.78,"adr":2.53,"dollar_vol":1816279407.4546523,"pct_from_hi":-3.8,"new_high":false,"new_low":false},{"sym":"EWW","d1":1.75,"w1":2.23,"m1":8.13,"m3":5.07,"m6":-3.78,"m12":6.32,"ytd":10.2,"price":354.48,"adr":2.53,"dollar_vol":3985550017.0657682,"pct_from_hi":-5.99,"new_high":false,"new_low":false},{"sym":"VNM","d1":1.1,"w1":3.53,"m1":4.75,"m3":2.02,"m6":4.69,"m12":5.52,"ytd":-0.37,"price":464.24,"adr":2.53,"dollar_vol":12409537556.141493,"pct_from_hi":-11.69,"new_high":false,"new_low":false},{"sym":"EWA","d1":-0.95,"w1":2.71,"m1":4.36,"m3":5.2,"m6":11.66,"m12":4.26,"ytd":10.98,"price":342.49,"adr":2.53,"dollar_vol":4922414972.980979,"pct_from_hi":-6.79,"new_high":false,"new_low":false},{"sym":"EWQ","d1":-1.46,"w1":0.79,"m1":3.5,"m3":9.08,"m6":16.45,"m12":24.73,"ytd":14.54,"price":391.05,"adr":2.53,"dollar_vol":1537954901.4831104,"pct_from_hi":-3.27,"new_high":false,"new_low":false},{"sym":"FXI","d1":1.81,"w1":3.97,"m1":3.0,"m3":7.36,"m6":-0.61,"m12":-14.22,"ytd":1.7,"price":188.55,"adr":2.53,"dollar_vol":4925016850.384112,"pct_from_hi":-16.51,"new_high":false,"new_low":false},{"sym":"EWG","d1":1.58,"w1":2.39,"m1":2.76,"m3":2.06,"m6":24.59,"m12":36.91,"ytd":43.49,"price":429.15,"adr":2.53,"dollar_vol":3259422138.267063,"pct_from_hi":-2.39,"new_high":false,"new_low":false},{"sym":"THD","d1":0.6,"w1":-1.57,"m1":2.66,"m3":0.27,"m6":-10.91,"m12":-19.27,"ytd":-17.41,"price":215.75,"adr":2.53,"dollar_vol":5447001947.784664,"pct_from_hi":-25.27,"new_high":false,"new_low":false},{"sym":"EWN","d1":-0.56,"w1":0.27,"m1":2.17,"m3":-1.3,"m6":5.3,"m12":45.72,"ytd":31.61,"price":136.39,"adr":2.53,"dollar_vol":1937876062.396342,"pct_from_hi":-4.32,"new_high":false,"new_low":false},{"sym":"INDA","d1":0.24,"w1":0.04,"m1":2.13,"m3":1.38,"m6":16.75,"m12":38.89,"ytd":31.25,"price":204.45,"adr":2.53,"dollar_vol":4569168537.48844,"pct_from_hi":-7.47,"new_high":false,"new_low":false},{"sym":"EWT","d1":-2.23,"w1":-2.57,"m1":2.0,"m3":0.16,"m6":21.81,"m12":41.9,"ytd":29.22,"price":294.57,"adr":2.53,"dollar_vol":2664216425.0872145,"pct_from_hi":-6.23,"new_high":false,"new_low":false},{"sym":"EWS","d1":-1.93,"w1":-0.3,"m1":1.12,"m3":10.33,"m6":9.68,"m12":22.9,"ytd":18.21,"price":435.26,"adr":2.53,"dollar_vol":1432334861.2004554,"pct_from_hi":-3.37,"new_high":false,"new_low":false},{"sym":"EWY","d1":0.59,"w1":1.5,"m1":1.1,"m3":1.5,"m6":1.84,"m12":5.08,"ytd":3.07,"price":454.37,"adr":2.53,"dollar_vol":3750092568.62223,"pct_from_hi":-6.53,"new_high":false,"new_low":false},{"sym":"TUR","d1":-1.73,"w1":-0.08,"m1":0.75,"m3":-4.45,"m6":10.72,"m12":21.91,"ytd":14.27,"price":453.25,"adr":2.53,"dollar_vol":9431149878.064266,"pct_from_hi":-7.12,"new_high":false,"new_low":false},{"sym":"EWL","d1":-0.95,"w1":-1.29,"m1":0.04,"m3":-0.92,"m6":-18.87,"m12":-14.38,"ytd":-17.18,"price":422.89,"adr":2.53,"dollar_vol":2049377517.8828964,"pct_from_hi":-28.18,"new_high":false,"new_low":false},{"sym":"EWH","d1":-0.99,"w1":3.05,"m1":-1.15,"m3":-16.71,"m6":-16.12,"m12":-26.68,"ytd":-21.7,"price":423.49,"adr":2.53,"dollar_vol":2575173406.439803,"pct_from_hi":-32.15,"new_high":false,"new_low":false},{"sym":"EIDO","d1":0.46,"w1":-0.75,"m1":-1.27,"m3":12.68,"m6":24.92,"m12":50.04,"ytd":45.19,"price":701.67,"adr":2.53,"dollar_vol":7756072025.449378,"pct_from_hi":-3.74,"new_high":false,"new_low":false},{"sym":"EWU","d1":0.72,"w1":-0.52,"m1":-1.36,"m3":3.11,"m6":21.45,"m12":41.53,"ytd":29.71,"price":273.63,"adr":2.53,"dollar_vol":6502089512.520174,"pct_from_hi":-8.16,"new_high":false,"new_low":false},{"sym":"MCHI","d1":0.75,"w1":0.32,"m1":-1.62,"m3":9.57,"m6":6.61,"m12":-6.23,"ytd":2.25,"price":331.8,"adr":2.53,"dollar_vol":3332119965.4868917,"pct_from_hi":-10.33,"new_high":false,"new_low":false},{"sym":"EWP","d1":-0.26,"w1":-4.12,"m1":-1.86,"m3":11.52,"m6":16.43,"m12":18.27,"ytd":19.85,"price":175.18,"adr":2.53,"dollar_vol":730605974.7145492,"pct_from_hi":-5.71,"new_high":false,"new_low":false},{"sym":"EWZ","d1":-0.58,"w1":-1.59,"m1":-2.37,"m3":-0.01,"m6":-9.39,"m12":-20.02,"ytd":-9.65,"price":323.74,"adr":2.53,"dollar_vol":5648957905.116762,"pct_from_hi":-19.78,"new_high":false,"new_low":false},{"sym":"EWO","d1":0.89,"w1":1.81,"m1":-5.41,"m3":-8.84,"m6":-3.62,"m12":-13.51,"ytd":-14.3,"price":30.89,"adr":2.53,"dollar_vol":223415626.9624439,"pct_from_hi":-18.79,"new_high":false,"new_low":false},{"sym":"EWJ","d1":0.94,"w1":-0.34,"m1":-6.24,"m3":-19.93,"m6":-12.07,"m12":-2.35,"ytd":2.81,"price":226.15,"adr":2.53,"dollar_vol":3835744515.982581,"pct_from_hi":-21.49,"new_high":false,"new_low":false},{"sym":"EWI","d1":1.13,"w1":-3.84,"m1":-6.27,"m3":-3.5,"m6":19.64,"m12":44.18,"ytd":38.49,"price":181.29,"adr":2.53,"dollar_vol":3617817916.4166274,"pct_from_hi":-10.9,"new_high":false,"new_low":false},{"sym":"EWC","d1":-0.03,"w1":1.23,"m1":-8.7,"m3":-22.99,"m6":-29.05,"m12":-29.35,"ytd":-28.17,"price":158.58,"adr":2.53,"dollar_vol":1397716324.708581,"pct_from_hi":-35.17,"new_high":false,"new_low":false},{"sym":"EPHE","d1":-0.78,"w1":-5.8,"m1":-13.84,"m3":-15.64,"m6":-18.28,"m12":-27.15,"ytd":-21.3,"price":353.44,"adr":2.53,"dollar_vol":522930643.831061,"pct_from_hi":-29.02,"new_high":false,"new_low":true}]},"new_high_low":{"by_industry":[{"industry":"Gold","new_highs":2,"new_lows":0,"nh_tickers":["AEM","NEM"],"nl_tickers":[]},{"industry":"Semiconductors","new_highs":1,"new_lows":0,"nh_tickers":["NVDA"],"nl_tickers":[]},{"industry":"Software - Infrastructure","new_highs":1,"new_lows":0,"nh_tickers":["PLTR"],"nl_tickers":[]},{"industry":"Residential Construction","new_highs":1,"new_lows":0,"nh_tickers":["DHI"],"nl_tickers":[]},{"industry":"Biotechnology","new_highs":1,"new_lows":1,"nh_tickers":["VKTX"],"nl_tickers":["CRSP"]},{"industry":"Oil & Gas E&P","new_highs":0,"new_lows":2,"nh_tickers":[],"nl_tickers":["DVN","MTDR"]}],"totals":{"new_highs":6,"new_lows":3}},"top_gainers":[{"sym":"NOW","pct":4.85},{"sym":"WAL","pct":4.79},{"sym":"NBIX","pct":3.77},{"sym":"ARM","pct":3.25},{"sym":"TOL","pct":2.1},{"sym":"FANG","pct":2.09},{"sym":"PHM","pct":1.99},{"sym":"CTRA","pct":1.89},{"sym":"NET","pct":0.49},{"sym":"RF","pct":0.38},{"sym":"AEM","pct":0.25},{"sym":"PLTR","pct":0.24}],"tickers":{"NVDA":{"name":"NVDA","sector":"Technology","industry":"Semiconductors","mcap":608392923600.6675,"d1":0.23,"w1":1.14,"m1":4.98,"m3":16.58,"m6":39.75,"m12":131.97,"ytd":96.91,"price":299.25,"dollar_vol":6847704650.182794,"adr":3.11,"hi52":303.84,"lo52":127.69,"pct_from_hi":-1.51,"pct_from_lo":134.36,"new_high":true,"new_low":false,"spark":[0.0,0.23,0.46,0.69,0.91,1.14]},"AVGO":{"name":"AVGO","sector":"Technology","industry":"Semiconductors","mcap":1935465756479.4792,"d1":-0.38,"w1":-2.46,"m1":8.62,"m3":2.4,"m6":-11.76,"m12":16.98,"ytd":5.48,"price":177.12,"dollar_vol":4880318036.552962,"adr":3.88,"hi52":209.53,"lo52":136.74,"pct_from_hi":-15.47,"pct_from_lo":29.53,"new_high":false,"new_low":false,"spark":[0.0,-2.16,-2.1,-0.27,-2.08,-2.46]},"AMD":{"name":"AMD","sector":"Technology","industry":"Semiconductors","mcap":1613530066256.1287,"d1":-2.56,"w1":5.1,"m1":-7.43,"m3":-4.74,"m6":3.38,"m12":42.48,"ytd":26.33,"price":365.68,"dollar_vol":8093619464.510636,"adr":5.55,"hi52":486.16,"lo52":247.45,"pct_from_hi":-24.78,"pct_from_lo":47.78,"new_high":false,"new_low":false,"spark":[0.0,3.21,9.6,10.19,7.86,5.1]},"MU":{"name":"MU","sector":"Technology","industry":"Semiconductors","mcap":201723259453.80542,"d1":-3.6,"w1":3.69,"m1":7.86,"m3":4.57,"m6":-6.03,"m12":89.48,"ytd":35.76,"price":427.25,"dollar_vol":6711226136.291106,"adr":5.13,"hi52":518.17,"lo52":200.72,"pct_from_hi":-17.55,"pct_from_lo":112.86,"new_high":false,"new_low":false,"spark":[0.0,1.1,7.45,5.72,7.56,3.69]},"SMCI":{"name":"SMCI","sector":"Technology","industry":"Semiconductors","mcap":1672572240599.438,"d1":-6.7,"w1":-24.51,"m1":4.56,"m3":87.19,"m6":163.22,"m12":204.22,"ytd":113.91,"price":542.57,"dollar_vol":5685318800.891969,"adr":2.9,"hi52":756.08,"lo52":162.22,"pct_from_hi":-28.24,"pct_from_lo":234.46,"new_high":false,"new_low":false,"spark":[0.0,3.72,-4.5,-11.09,-19.08,-24.51]},"ARM":{"name":"ARM","sector":"Technology","industry":"Semiconductors","mcap":662289834058.5045,"d1":3.25,"w1":7.83,"m1":14.78,"m3":-6.16,"m6":124.18,"m12":278.4,"ytd":264.64,"price":752.25,"dollar_vol":3273054970.4681234,"adr":2.17,"hi52":811.44,"lo52":178.05,"pct_from_hi":-7.3,"pct_from_lo":322.48,"new_high":false,"new_low":false,"spark":[0.0,2.17,0.37,4.55,4.43,7.83]},"PLTR":{"name":"PLTR","sector":"Technology","industry":"Software - Infrastructure","mcap":421561049355.3036,"d1":0.24,"w1":1.21,"m1":5.31,"m3":17.81,"m6":43.34,"m12":153.0,"ytd":109.71,"price":306.81,"dollar_vol":3173729021.8845873,"adr":4.91,"hi52":314.16,"lo52":119.08,"pct_from_hi":-2.34,"pct_from_lo":157.64,"new_high":true,"new_low":false,"spark":[0.0,0.24,0.49,0.73,0.97,1.21]},"NOW":{"name":"NOW","sector":"Technology","industry":"Software - Infrastructure","mcap":118817343723.61316,"d1":4.85,"w1":-0.03,"m1":0.81,"m3":6.25,"m6":4.61,"m12":-33.53,"ytd":-13.44,"price":75.88,"dollar_vol":649153345.9618313,"adr":5.55,"hi52":117.19,"lo52":62.09,"pct_from_hi":-35.25,"pct_from_lo":22.21,"new_high":false,"new_low":false,"spark":[0.0,-0.8,-2.78,-4.9,-4.65,-0.03]},"PANW":{"name":"PANW","sector":"Technology","industry":"Software - Infrastructure","mcap":1188369479799.551,"d1":-3.47,"w1":-1.67,"m1":8.43,"m3":20.99,"m6":18.54,"m12":69.69,"ytd":86.31,"price":298.04,"dollar_vol":1515598157.7106996,"adr":5.32,"hi52":319.59,"lo52":155.83,"pct_from_hi":-6.74,"pct_from_lo":91.26,"new_high":false,"new_low":false,"spark":[0.0,2.19,1.22,1.14,1.87,-1.67]},"CRWD":{"name":"CRWD","sector":"Technology","industry":"Software - Infrastructure","mcap":1547486897143.0112,"d1":-6.34,"w1":-13.37,"m1":-21.1,"m3":-25.25,"m6":-19.34,"m12":-23.6,"ytd":-8.4,"price":233.65,"dollar_vol":4770055359.010844,"adr":5.19,"hi52":359.12,"lo52":196.08,"pct_from_hi":-34.94,"pct_from_lo":19.16,"new_high":false,"new_low":false,"spark":[0.0,-0.92,-1.78,-5.07,-7.5,-13.37]},"NET":{"name":"NET","sector":"Technology","industry":"Software - Infrastructure","mcap":1657003613133.8928,"d1":0.49,"w1":10.03,"m1":3.98,"m3":-23.85,"m6":-41.46,"m12":-1.09,"ytd":-30.33,"price":108.73,"dollar_vol":2929353213.6344147,"adr":3.39,"hi52":211.43,"lo52":94.92,"pct_from_hi":-48.57,"pct_from_lo":14.55,"new_high":false,"new_low":false,"spark":[0.0,3.01,4.05,11.1,9.5,10.03]},"FANG":{"name":"FANG","sector":"Energy","industry":"Oil & Gas E&P","mcap":1540158957215.3674,"d1":2.09,"w1":3.96,"m1":3.3,"m3":-0.18,"m6":-8.07,"m12":-30.1,"ytd":-14.72,"price":42.15,"dollar_vol":37205538.469448276,"adr":4.68,"hi52":64.48,"lo52":38.58,"pct_from_hi":-34.63,"pct_from_lo":9.26,"new_high":false,"new_low":false,"spark":[0.0,1.58,0.33,-2.62,1.84,3.96]},"DVN":{"name":"DVN","sector":"Energy","industry":"Oil & Gas E&P","mcap":1676280224787.0518,"d1":-1.35,"w1":-6.41,"m1":-22.34,"m3":-46.32,"m6":-63.31,"m12":-77.53,"ytd":-74.91,"price":29.39,"dollar_vol":191899933.33337563,"adr":5.37,"hi52":133.82,"lo52":28.62,"pct_from_hi":-78.04,"pct_from_lo":2.69,"new_high":false,"new_low":true,"spark":[0.0,-1.28,-2.56,-3.85,-5.13,-6.41]},"CTRA":{"name":"CTRA","sector":"Energy","industry":"Oil & Gas E&P","mcap":728966082515.0034,"d1":1.89,"w1":6.38,"m1":1.53,"m3":-5.82,"m6":50.86,"m12":58.91,"ytd":53.68,"price":124.53,"dollar_vol":1676257268.0967727,"adr":6.18,"hi52":137.45,"lo52":69.4,"pct_from_hi":-9.4,"pct_from_lo":79.44,"new_high":false,"new_low":false,"spark":[0.0,-0.47,3.36,2.73,4.42,6.38]},"EOG":{"name":"EOG","sector":"Energy","industry":"Oil & Gas E&P","mcap":1137040864382.104,"d1":-0.75,"w1":-5.16,"m1":-3.52,"m3":-15.81,"m6":-15.61,"m12":-40.55,"ytd":-36.78,"price":84.83,"dollar_vol":1471519542.0646322,"adr":3.32,"hi52":144.67,"lo52":80.89,"pct_from_hi":-41.36,"pct_from_lo":4.87,"new_high":false,"new_low":false,"spark":[0.0,-0.14,-2.47,-1.95,-4.45,-5.16]},"MTDR":{"name":"MTDR","sector":"Energy","industry":"Oil & Gas E&P","mcap":903978520391.8182,"d1":-2.18,"w1":-10.04,"m1":-31.91,"m3":-58.43,"m6":-73.76,"m12":-84.9,"ytd":-82.95,"price":22.18,"dollar_vol":564280838.9618617,"adr":5.74,"hi52":150.46,"lo52":21.56,"pct_from_hi":-85.26,"pct_from_lo":2.87,"new_high":false,"new_low":true,"spark":[0.0,-2.01,-4.01,-6.02,-8.03,-10.04]},"WAL":{"name":"WAL","sector":"Financial","industry":"Banks - Regional","mcap":1221745510619.1577,"d1":4.79,"w1":3.93,"m1":0.58,"m3":13.1,"m6":21.77,"m12":67.29,"ytd":61.67,"price":645.51,"dollar_vol":6599881408.554794,"adr":2.97,"hi52":697.66,"lo52":359.22,"pct_from_hi":-7.48,"pct_from_lo":79.7,"new_high":false,"new_low":false,"spark":[0.0,-3.57,0.25,0.8,-0.82,3.93]},"ZION":{"name":"ZION","sector":"Financial","industry":"Banks - Regional","mcap":827168619099.838,"d1":0.15,"w1":-1.95,"m1":4.68,"m3":5.28,"m6":12.32,"m12":8.61,"ytd":10.86,"price":122.85,"dollar_vol":2679968761.579452,"adr":5.69,"hi52":140.86,"lo52":97.92,"pct_from_hi":-12.79,"pct_from_lo":25.46,"new_high":false,"new_low":false,"spark":[0.0,2.71,0.68,-0.13,-2.1,-1.95]},"CFG":{"name":"CFG","sector":"Financial","industry":"Banks - Regional","mcap":1634698644304.868,"d1":-2.02,"w1":-2.04,"m1":-9.41,"m3":1.09,"m6":1.23,"m12":12.87,"ytd":-0.41,"price":70.51,"dollar_vol":899873110.0554185,"adr":5.86,"hi52":85.09,"lo52":54.8,"pct_from_hi":-17.13,"pct_from_lo":28.66,"new_high":false,"new_low":false,"spark":[0.0,0.05,-0.59,-1.98,-0.02,-2.04]},"KEY":{"name":"KEY","sector":"Financial","industry":"Banks - Regional","mcap":1168094249690.8542,"d1":-3.06,"w1":0.44,"m1":2.64,"m3":-25.14,"m6":-6.34,"m12":-6.86,"ytd":-22.04,"price":89.51,"dollar_vol":336488770.7441921,"adr":6.18,"hi52":124.58,"lo52":84.45,"pct_from_hi":-28.15,"pct_from_lo":5.99,"new_high":false,"new_low":false,"spark":[0.0,-1.53,0.24,5.35,3.61,0.44]},"RF":{"name":"RF","sector":"Financial","industry":"Banks - Regional","mcap":773937830344.8785,"d1":0.38,"w1":2.89,"m1":15.81,"m3":15.44,"m6":0.13,"m12":24.3,"ytd":27.6,"price":196.75,"dollar_vol":4361849413.243395,"adr":2.88,"hi52":211.87,"lo52":142.15,"pct_from_hi":-7.14,"pct_from_lo":38.4,"new_high":false,"new_low":false,"spark":[0.0,0.27,0.75,-0.06,2.5,2.89]},"VKTX":{"name":"VKTX","sector":"Healthcare","industry":"Biotechnology","mcap":1335153320021.8584,"d1":0.21,"w1":1.05,"m1":4.55,"m3":15.02,"m6":35.35,"m12":109.36,"ytd":82.44,"price":209.62,"dollar_vol":4179714122.1115007,"adr":4.16,"hi52":213.9,"lo52":98.51,"pct_from_hi":-2.0,"pct_from_lo":112.8,"new_high":true,"new_low":false,"spark":[0.0,0.21,0.42,0.63,0.84,1.05]},"CRSP":{"name":"CRSP","sector":"Healthcare","industry":"Biotechnology","mcap":1122899340932.0764,"d1":-1.54,"w1":-7.27,"m1":-24.76,"m3":-49.68,"m6":-66.39,"m12":-79.8,"ytd":-77.36,"price":26.64,"dollar_vol":48411752.26851639,"adr":4.39,"hi52":134.28,"lo52":26.07,"pct_from_hi":-80.16,"pct_from_lo":2.2,"new_high":false,"new_low":true,"spark":[0.0,-1.45,-2.91,-4.36,-5.81,-7.27]},"NBIX":{"name":"NBIX","sector":"Healthcare","industry":"Biotechnology","mcap":735812988393.8475,"d1":3.77,"w1":7.49,"m1":6.55,"m3":12.79,"m6":21.5,"m12":0.0,"ytd":8.67,"price":277.67,"dollar_vol":5486576625.72419,"adr":5.57,"hi52":315.68,"lo52":173.19,"pct_from_hi":-12.04,"pct_from_lo":60.32,"new_high":false,"new_low":false,"spark":[0.0,-1.77,-2.1,0.31,3.59,7.49]},"ALNY":{"name":"ALNY","sector":"Healthcare","industry":"Biotechnology","mcap":486373305201.1599,"d1":-1.12,"w1":-1.4,"m1":-6.69,"m3":-19.62,"m6":-19.61,"m12":-39.95,"ytd":-50.49,"price":183.13,"dollar_vol":1956823569.420084,"adr":5.88,"hi52":430.59,"lo52":164.46,"pct_from_hi":-57.47,"pct_from_lo":11.35,"new_high":false,"new_low":false,"spark":[0.0,1.2,0.93,-1.97,-0.28,-1.4]},"EXEL":{"name":"EXEL","sector":"Healthcare","industry":"Biotechnology","mcap":721969301404.7423,"d1":-6.63,"w1":-8.07,"m1":-1.64,"m3":20.76,"m6":80.96,"m12":57.98,"ytd":45.27,"price":623.5,"dollar_vol":2734381145.530051,"adr":3.33,"hi52":716.73,"lo52":293.04,"pct_from_hi":-13.01,"pct_from_lo":112.77,"new_high":false,"new_low":false,"spark":[0.0,-1.05,-2.87,-2.52,-1.54,-8.07]},"DHI":{"name":"DHI","sector":"Consumer Cyclical","industry":"Residential Construction","mcap":1766014089639.1038,"d1":0.22,"w1":1.09,"m1":4.74,"m3":15.7,"m6":37.26,"m12":118.77,"ytd":88.56,"price":286.07,"dollar_vol":5416744937.502426,"adr":3.31,"hi52":290.72,"lo52":129.24,"pct_from_hi":-1.6,"pct_from_lo":121.35,"new_high":true,"new_low":false,"spark":[0.0,0.22,0.44,0.65,0.87,1.09]},"LEN":{"name":"LEN","sector":"Consumer Cyclical","industry":"Residential Construction","mcap":909131815962.9098,"d1":-1.65,"w1":4.92,"m1":5.07,"m3":41.07,"m6":77.54,"m12":59.51,"ytd":72.43,"price":344.68,"dollar_vol":1624080214.6624584,"adr":5.28,"hi52":359.47,"lo52":173.86,"pct_from_hi":-4.12,"pct_from_lo":98.25,"new_high":false,"new_low":false,"spark":[0.0,1.21,3.91,3.76,6.68,4.92]},"PHM":{"name":"PHM","sector":"Consumer Cyclical","industry":"Residential Construction","mcap":419059265754.5422,"d1":1.99,"w1":-3.55,"m1":-5.53,"m3":4.64,"m6":34.5,"m12":109.51,"ytd":98.35,"price":500.39,"dollar_vol":399684779.0503951,"adr":2.69,"hi52":588.31,"lo52":231.47,"pct_from_hi":-14.94,"pct_from_lo":116.18,"new_high":false,"new_low":false,"spark":[0.0,-1.91,-1.71,-3.22,-5.44,-3.55]},"TOL":{"name":"TOL","sector":"Consumer Cyclical","industry":"Residential Construction","mcap":1173385517629.4915,"d1":2.1,"w1":-2.9,"m1":0.83,"m3":3.07,"m6":2.37,"m12":20.73,"ytd":-15.28,"price":369.0,"dollar_vol":10555795023.083683,"adr":3.75,"hi52":452.73,"lo52":291.08,"pct_from_hi":-18.49,"pct_from_lo":26.77,"new_high":false,"new_low":false,"spark":[0.0,-0.7,-0.19,-0.55,-4.9,-2.9]},"NVR":{"name":"NVR","sector":"Consumer Cyclical","industry":"Residential Construction","mcap":1241056703853.6501,"d1":-0.09,"w1":-1.75,"m1":-13.98,"m3":-16.35,"m6":-23.4,"m12":-8.21,"ytd":-12.54,"price":201.66,"dollar_vol":5944390994.532732,"adr":3.71,"hi52":280.22,"lo52":190.92,"pct_from_hi":-28.04,"pct_from_lo":5.62,"new_high":false,"new_low":false,"spark":[0.0,-1.36,-5.25,-3.66,-1.65,-1.75]},"NEM":{"name":"NEM","sector":"Basic Materials","industry":"Gold","mcap":79354584889.86853,"d1":0.23,"w1":1.15,"m1":4.99,"m3":16.65,"m6":39.94,"m12":133.01,"ytd":97.55,"price":213.66,"dollar_vol":3619329878.5971417,"adr":3.42,"hi52":217.25,"lo52":90.63,"pct_from_hi":-1.66,"pct_from_lo":135.75,"new_high":true,"new_low":false,"spark":[0.0,0.23,0.46,0.69,0.92,1.15]},"AEM":{"name":"AEM","sector":"Basic Materials","industry":"Gold","mcap":1869556400777.551,"d1":0.25,"w1":1.24,"m1":5.42,"m3":18.24,"m6":44.61,"m12":161.09,"ytd":114.47,"price":183.96,"dollar_vol":1999040593.1221423,"adr":3.52,"hi52":187.14,"lo52":69.68,"pct_from_hi":-1.7,"pct_from_lo":164.0,"new_high":true,"new_low":false,"spark":[0.0,0.25,0.5,0.74,0.99,1.24]},"KGC":{"name":"KGC","sector":"Basic Materials","industry":"Gold","mcap":754717738820.634,"d1":-0.9,"w1":3.99,"m1":12.14,"m3":17.67,"m6":10.63,"m12":2.27,"ytd":4.49,"price":358.26,"dollar_vol":4666053204.3235855,"adr":4.34,"hi52":481.76,"lo52":249.98,"pct_from_hi":-25.63,"pct_from_lo":43.32,"new_high":false,"new_low":false,"spark":[0.0,1.14,4.03,8.06,4.93,3.99]},"AU":{"name":"AU","sector":"Basic Materials","industry":"Gold","mcap":1158577353014.9753,"d1":-1.04,"w1":-6.26,"m1":-14.8,"m3":-21.54,"m6":3.37,"m12":-6.88,"ytd":2.58,"price":193.33,"dollar_vol":3737186586.099836,"adr":3.02,"hi52":284.51,"lo52":137.17,"pct_from_hi":-32.05,"pct_from_lo":40.94,"new_high":false,"new_low":false,"spark":[0.0,-3.29,-3.22,-6.09,-5.28,-6.26]}}};
+
+// ---- column definitions -------------------------------------------------
+const PERF = [
+  {k:'d1',label:'Today',max:3},{k:'w1',label:'1W',max:6},{k:'m1',label:'1M',max:15},
+  {k:'m3',label:'3M',max:25},{k:'m6',label:'6M',max:40},{k:'ytd',label:'YTD',max:40},
+  {k:'m12',label:'12M',max:60},
+];
+const GROUP_COLS = [
+  {k:'name',label:'Group',type:'text'},
+  {k:'count',label:'#',type:'int'},
+  ...PERF.map(p=>({...p,type:'pct'})),
+  {k:'new_highs',label:'NH',type:'nh'},
+  {k:'new_lows',label:'NL',type:'nl'},
+];
+const ETF_COLS = [
+  {k:'sym',label:'Ticker',type:'text'},
+  {k:'price',label:'Price',type:'price'},
+  ...PERF.map(p=>({...p,type:'pct'})),
+  {k:'pct_from_hi',label:'%52H',type:'pct',max:40},
+];
+const STOCK_COLS = [
+  {k:'sym',label:'Ticker',type:'text'},
+  {k:'dollar_vol',label:'$Vol',type:'vol'},
+  {k:'adr',label:'ADR%',type:'adr'},
+  ...PERF.map(p=>({...p,type:'pct'})),
+  {k:'flag',label:'52w',type:'flag'},
+];
+
+const TABS = [
+  {id:'themes', label:'Themes',  kind:'group', src:d=>d.tabs.themes,  drill:'industry'},
+  {id:'groups', label:'Groups',  kind:'group', src:d=>d.tabs.groups,  drill:'sector'},
+  {id:'sp',     label:'S&P',     kind:'etf',   src:d=>d.tabs.sp},
+  {id:'eqwt',   label:'EqWt',    kind:'etf',   src:d=>d.tabs.eqwt},
+  {id:'country',label:'Country', kind:'etf',   src:d=>d.tabs.country},
+  {id:'nhl',    label:'New H/L', kind:'nhl'},
+];
+
+let DATA=null, ACTIVE='themes';
+const SORT={}; // per-tab {col,dir}
+
+// ---- formatters ---------------------------------------------------------
+function fpct(v){ if(v==null) return '<span class="zero">—</span>';
+  const s=v>0?'+':''; const c=v>0?'var(--green)':v<0?'var(--red)':'var(--text3)';
+  return `<span style="color:${c}">${s}${v.toFixed(2)}%</span>`; }
+function heat(v,max){ if(v==null) return '';
+  const a=Math.min(Math.abs(v)/max,1)*0.4;
+  return v>0?`background:rgba(0,230,118,${a.toFixed(3)})`
+            :v<0?`background:rgba(255,51,85,${a.toFixed(3)})`:''; }
+function fvol(v){ if(v==null) return '—'; v=+v;
+  if(v>=1e9) return '$'+(v/1e9).toFixed(1)+'B';
+  if(v>=1e6) return '$'+(v/1e6).toFixed(0)+'M';
+  if(v>=1e3) return '$'+(v/1e3).toFixed(0)+'K'; return '$'+v.toFixed(0); }
+function fprice(v){ return v==null?'—':v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+// ---- sorting ------------------------------------------------------------
+function sortRows(rows,cols,tabId){
+  const st=SORT[tabId]; if(!st) return rows;
+  const col=cols.find(c=>c.k===st.col); if(!col) return rows;
+  const num = col.type!=='text';
+  return [...rows].sort((a,b)=>{
+    let x=a[st.col], y=b[st.col];
+    if(num){ x=x==null?-1e18:x; y=y==null?-1e18:y; return st.dir*(y-x); }
+    x=(''+x).toUpperCase(); y=(''+y).toUpperCase();
+    return st.dir*(x<y?1:x>y?-1:0);
+  });
+}
+function headerRow(cols,tabId){
+  const st=SORT[tabId]||{};
+  return '<tr>'+cols.map(c=>{
+    const cls=c.type==='text'?'l':'';
+    const ar=st.col===c.k?`<span class="ar">${st.dir<0?'▼':'▲'}</span>`:'';
+    return `<th class="${cls}" data-col="${c.k}" data-tab="${tabId}">${c.label} ${ar}</th>`;
+  }).join('')+'</tr>';
+}
+
+// ---- cell renderers -----------------------------------------------------
+function perfCell(v,col){ return `<td style="${heat(v,col.max)}">${fpct(v)}</td>`; }
+function groupRows(rows,tab){
+  let html='';
+  rows.forEach((r,i)=>{
+    html+=`<tr class="grp" data-i="${i}">`;
+    GROUP_COLS.forEach(c=>{
+      if(c.k==='name') html+=`<td class="l gname"><span class="arr">▸</span> ${r.name}</td>`;
+      else if(c.k==='count') html+=`<td class="cnt">${r.count}</td>`;
+      else if(c.type==='pct') html+=perfCell(r[c.k],c);
+      else if(c.k==='new_highs') html+=`<td class="${r.new_highs?'nh':'zero'}">${r.new_highs||'—'}</td>`;
+      else if(c.k==='new_lows') html+=`<td class="${r.new_lows?'nl':'zero'}">${r.new_lows||'—'}</td>`;
+    });
+    html+=`</tr><tr class="detail"><td colspan="${GROUP_COLS.length}"><div id="det${i}"></div></td></tr>`;
+  });
+  return html;
+}
+function stockSubTable(members){
+  const rows=sortRows(members,STOCK_COLS,'_sub'+ACTIVE);
+  let h='<table class="sub"><thead>'+headerRow(STOCK_COLS,'_sub'+ACTIVE)+'</thead><tbody>';
+  rows.forEach(m=>{
+    h+='<tr>';
+    STOCK_COLS.forEach(c=>{
+      if(c.k==='sym') h+=`<td class="l sym">${m.sym}</td>`;
+      else if(c.k==='dollar_vol') h+=`<td class="muted">${fvol(m.dollar_vol)}</td>`;
+      else if(c.k==='adr') h+=`<td class="muted">${m.adr==null?'—':m.adr.toFixed(1)}</td>`;
+      else if(c.type==='pct') h+=perfCell(m[c.k],c);
+      else if(c.k==='flag') h+=`<td>${m.new_high?'<span class="flag-nh">NH</span>':m.new_low?'<span class="flag-nl">NL</span>':'<span class="zero">·</span>'}</td>`;
+    });
+    h+='</tr>';
+  });
+  return h+'</tbody></table>';
+}
+function etfRows(rows){
+  return sortRows(rows,ETF_COLS,ACTIVE).map(r=>{
+    let h='<tr class="grp" style="cursor:default">';
+    ETF_COLS.forEach(c=>{
+      if(c.k==='sym') h+=`<td class="l sym">${r.sym}</td>`;
+      else if(c.k==='price') h+=`<td>${fprice(r.price)}</td>`;
+      else h+=perfCell(r[c.k],c);
+    });
+    return h+'</tr>';
+  }).join('');
+}
+function nhlView(){
+  const rows=(DATA.new_high_low.by_industry||[]).map(r=>({...r,net:r.new_highs-r.new_lows}));
+  const cols=[{k:'industry',label:'Industry',type:'text'},
+    {k:'new_highs',label:'New Highs',type:'int'},{k:'new_lows',label:'New Lows',type:'int'},
+    {k:'net',label:'Net',type:'int'}];
+  if(!SORT['nhl']) SORT['nhl']={col:'net',dir:-1};
+  const t=DATA.new_high_low.totals||{new_highs:0,new_lows:0};
+  let h=`<div style="padding:10px 14px;border-bottom:1px solid var(--border2);font-size:11px">
+    <span class="nh">${t.new_highs} new highs</span> &nbsp;·&nbsp; <span class="nl">${t.new_lows} new lows</span>
+    &nbsp;·&nbsp; <span class="muted">net ${t.new_highs-t.new_lows>=0?'+':''}${t.new_highs-t.new_lows}</span></div>`;
+  h+='<table><thead>'+headerRow(cols,'nhl')+'</thead><tbody>';
+  sortRows(rows,cols,'nhl').forEach((r,i)=>{
+    h+=`<tr class="grp" data-nhl="${i}"><td class="l gname"><span class="arr">▸</span> ${r.industry}</td>
+      <td class="${r.new_highs?'nh':'zero'}">${r.new_highs||'—'}</td>
+      <td class="${r.new_lows?'nl':'zero'}">${r.new_lows||'—'}</td>
+      <td style="color:${r.net>0?'var(--green)':r.net<0?'var(--red)':'var(--text3)'}">${r.net>0?'+':''}${r.net}</td></tr>`;
+    h+=`<tr class="detail"><td colspan="4"><div class="tklist">
+      ${r.nh_tickers.map(s=>`<span class="t"><span class="flag-nh">▲</span> <b class="sym">${s}</b></span>`).join('')}
+      ${r.nl_tickers.map(s=>`<span class="t"><span class="flag-nl">▼</span> <b style="color:var(--red)">${s}</b></span>`).join('')}
+      ${(!r.nh_tickers.length&&!r.nl_tickers.length)?'<span class="muted">—</span>':''}
+    </div></td></tr>`;
+  });
+  return h+'</tbody></table>';
+}
+
+// ---- render -------------------------------------------------------------
+function render(){
+  // tabs
+  document.getElementById('tabs').innerHTML=TABS.map(t=>
+    `<div class="tab ${t.id===ACTIVE?'on':''}" data-tab="${t.id}">${t.label}</div>`).join('');
+  const tab=TABS.find(t=>t.id===ACTIVE);
+  const view=document.getElementById('view');
+
+  if(tab.kind==='nhl'){ view.innerHTML=nhlView(); bindNhl(); return; }
+
+  if(tab.kind==='etf'){
+    view.innerHTML='<table><thead>'+headerRow(ETF_COLS,ACTIVE)+'</thead><tbody>'+etfRows(tab.src(DATA))+'</tbody></table>';
+    bindSort(); return;
+  }
+  // group
+  if(!SORT[ACTIVE]) SORT[ACTIVE]={col:'m1',dir:-1};
+  const rows=sortRows(tab.src(DATA),GROUP_COLS,ACTIVE);
+  view.innerHTML='<table><thead>'+headerRow(GROUP_COLS,ACTIVE)+'</thead><tbody>'+groupRows(rows,tab)+'</tbody></table>';
+  bindSort();
+  bindGroupDrill(rows,tab);
+}
+function bindSort(){
+  document.querySelectorAll('thead th[data-col]').forEach(th=>{
+    th.onclick=()=>{ const tabId=th.dataset.tab, col=th.dataset.col;
+      const st=SORT[tabId]||{col:null,dir:-1};
+      SORT[tabId]= st.col===col?{col,dir:-st.dir}:{col,dir:-1};
+      if(tabId.startsWith('_sub')) reRenderOpenDetails(); else render();
+    };
+  });
+}
+let OPEN=new Set();
+function bindGroupDrill(rows,tab){
+  OPEN=new Set();
+  document.querySelectorAll('tr.grp[data-i]').forEach(tr=>{
+    tr.onclick=()=>{
+      const i=+tr.dataset.i, det=tr.nextElementSibling;
+      const open=det.classList.toggle('show'); tr.classList.toggle('open',open);
+      if(open){ OPEN.add(i);
+        const key=tab.drill, val=rows[i].name;
+        const members=Object.entries(DATA.tickers)
+          .filter(([s,m])=>m[key]===val).map(([s,m])=>({sym:s,...m}));
+        document.getElementById('det'+i).innerHTML=stockSubTable(members);
+        bindSort();
+      } else OPEN.delete(i);
+    };
+  });
+}
+function reRenderOpenDetails(){ const tab=TABS.find(t=>t.id===ACTIVE);
+  const rows=sortRows(tab.src(DATA),GROUP_COLS,ACTIVE);
+  OPEN.forEach(i=>{ const key=tab.drill,val=rows[i]?.name; if(val==null)return;
+    const members=Object.entries(DATA.tickers).filter(([s,m])=>m[key]===val).map(([s,m])=>({sym:s,...m}));
+    const el=document.getElementById('det'+i); if(el){el.innerHTML=stockSubTable(members);bindSort();}
+  });
+}
+function bindNhl(){
+  document.querySelectorAll('tr.grp[data-nhl]').forEach(tr=>{
+    tr.onclick=()=>{ const det=tr.nextElementSibling; const o=det.classList.toggle('show'); tr.classList.toggle('open',o); };
+  });
+  bindSort();
+}
+function bindTabs(){
+  document.getElementById('tabs').onclick=e=>{ const t=e.target.closest('.tab'); if(!t)return;
+    ACTIVE=t.dataset.tab; render(); };
+}
+
+// ---- gainers + badges ---------------------------------------------------
+function renderChrome(){
+  document.getElementById('tape').innerHTML=(DATA.top_gainers||[]).map(g=>
+    `<span class="chip"><b>${g.sym}</b> ${fpct(g.pct)}</span>`).join('') || '<span class="muted">—</span>';
+  document.getElementById('uniBadge').textContent=(DATA.universe_size||0)+' names';
+  const dt=DATA.generated_at?new Date(DATA.generated_at):null;
+  if(dt){ const o={month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'};
+    document.getElementById('asofBadge').textContent='DATA: '+dt.toLocaleString('en-US',o); }
+}
+function boot(data,live){
+  DATA=data; renderChrome();
+  const b=document.getElementById('srcBadge');
+  if(live){ b.textContent='● LIVE'; b.className='badge live'; }
+  else{ b.textContent='● SAMPLE DATA'; b.className='badge demo';
+    document.getElementById('footNote').textContent='Showing sample data — data/data.json not found yet. It appears once your GitHub Action runs.'; }
+  bindTabs(); render();
+}
+
+fetch('data/data.json?_='+Date.now())
+  .then(r=>{ if(!r.ok) throw 0; return r.json(); })
+  .then(d=>boot(d,true))
+  .catch(()=>boot(SAMPLE,false));
+</script>
+</body>
+</html>
