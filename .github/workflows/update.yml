@@ -1,13 +1,10 @@
    name: Update Market Pulse data
-
    on:
      schedule:
        - cron: '0 22 * * 1-5'
      workflow_dispatch: {}
-
    permissions:
      contents: write
-
    jobs:
      update:
        runs-on: ubuntu-latest
@@ -18,12 +15,14 @@
              python-version: '3.12'
          - name: Install dependencies
            run: pip install -r requirements.txt
-         - name: Build data.json
+         - name: Build dashboard data (data.json)
            run: python fetch_data.py
+         - name: Build market monitor (monitor.json)
+           run: python fetch_monitor.py
          - name: Commit refreshed data
            run: |
              git config user.name  "market-pulse-bot"
              git config user.email "actions@users.noreply.github.com"
-             git add data/data.json universe.json
-             git commit -m "data: $(date -u +%Y-%m-%d)" || echo "no changes to commit"
+             git add -A
+             git commit -m "data: $(date -u +%Y-%m-%d)" || echo "no changes"
              git push
