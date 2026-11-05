@@ -30,7 +30,7 @@ import pandas as pd
 
 MIN_PRICE        = 3.0
 MIN_DOLLAR_VOL   = 20_000_000       # 1-day $-volume floor
-UNIVERSE_CACHE   = "monitor_universe.json"
+UNIVERSE_CACHE   = "monitor_universe_v2.json"   # bumped: forces a rebuild with the new filter
 UNIVERSE_MAX_AGE = 7
 PRICE_PERIOD     = "400d"
 CHUNK            = 150
@@ -92,23 +92,28 @@ def compute_monitor(close, high, low, volume, spx=None, out_days=OUT_DAYS, big_d
     ext   = (close - sma50) >= (10 * atr14)
     above50 = close > sma50
 
-    # per-day count series
-    up4c, dn4c = _cnt(up4), _cnt(dn4)
+    # Per-day universe membership: 20-day avg dollar-volume >= floor AND price >= floor,
+    # applied to every count. This tracks the liquid set day by day and does NOT balloon
+    # on a high-volume session the way a single-day dollar-volume snapshot would.
+    inuni = (close.rolling(20).mean() * volume.rolling(20).mean() >= MIN_DOLLAR_VOL) & (close >= MIN_PRICE)
+
+    up4m, dn4m = up4 & inuni, dn4 & inuni
+    up4c, dn4c = _cnt(up4m), _cnt(dn4m)
     series = {
         "up4": up4c, "dn4": dn4c,
-        "up25q": _cnt(up25q), "dn25q": _cnt(dn25q),
-        "up25m": _cnt(up25m), "dn25m": _cnt(dn25m),
-        "up50m": _cnt(up50m), "dn50m": _cnt(dn50m),
-        "up13": _cnt(up13),   "dn13": _cnt(dn13),
-        "atr10x": _cnt(ext),
+        "up25q": _cnt(up25q & inuni), "dn25q": _cnt(dn25q & inuni),
+        "up25m": _cnt(up25m & inuni), "dn25m": _cnt(dn25m & inuni),
+        "up50m": _cnt(up50m & inuni), "dn50m": _cnt(dn50m & inuni),
+        "up13": _cnt(up13 & inuni),   "dn13": _cnt(dn13 & inuni),
+        "atr10x": _cnt(ext & inuni),
     }
     # ratios (guard divide-by-zero)
     r5  = up4c.rolling(5).sum()  / dn4c.rolling(5).sum().replace(0, np.nan)
     r10 = up4c.rolling(10).sum() / dn4c.rolling(10).sum().replace(0, np.nan)
 
-    uni = close.notna().sum(axis=1)
-    have50 = (close.notna() & sma50.notna())
-    pct50  = (above50 & sma50.notna()).sum(axis=1) / have50.sum(axis=1).replace(0, np.nan) * 100
+    uni = inuni.sum(axis=1)
+    have50 = inuni & sma50.notna()
+    pct50  = (above50 & have50).sum(axis=1) / have50.sum(axis=1).replace(0, np.nan) * 100
 
     spx_al = spx.reindex(close.index) if spx is not None else None
 
@@ -132,8 +137,8 @@ def compute_monitor(close, high, low, volume, spx=None, out_days=OUT_DAYS, big_d
     # today's name lists (latest day) for the 4% drill-downs
     d0 = idx[-1]
     today = {
-        "up4": sorted([c for c in close.columns if bool(up4.loc[d0, c])]),
-        "dn4": sorted([c for c in close.columns if bool(dn4.loc[d0, c])]),
+        "up4": sorted([c for c in close.columns if bool(up4m.loc[d0, c])]),
+        "dn4": sorted([c for c in close.columns if bool(dn4m.loc[d0, c])]),
     }
 
     def dist(s):
@@ -166,13 +171,19 @@ def build_universe():
         sym = (row.get("symbol") or "").strip().upper()
         if not sym or any(ch in sym for ch in (".", "^", "/", "~", " ")):
             continue  # drop warrants / units / preferreds
+        name = (row.get("name") or "").lower()
+        if any(k in name for k in (" etf", " etn", " fund", "depositary",
+                                   "acquisition corp", " warrant", " unit", " right",
+                                   " preferred", "pfd")):
+            continue            # drop non-common instruments; ADR common equity kept
         try:
             price = float((row.get("lastsale") or "").replace("$", "").replace(",", ""))
             vol   = float(str(row.get("volume") or "0").replace(",", ""))
         except ValueError:
             continue
-        if price < MIN_PRICE or price * vol < MIN_DOLLAR_VOL:
-            continue            # ADRs kept (no country filter)
+        # Loose pre-filter only; the real $20M universe is applied PER-DAY in compute_monitor
+        if price < MIN_PRICE or price * vol < 8_000_000:
+            continue
         uni.append(sym)
     uni = sorted(set(uni))
     if len(uni) < 500:
@@ -221,6 +232,7 @@ def panel(frames, field):
 
 def main():
     syms = load_universe()
+    print(f"Candidate names from screener (loose pre-filter): {len(syms)}")
     print(f"Fetching prices for {len(syms)} names + ^GSPC ...")
     frames = fetch_prices(syms)
     print(f"Got {len(frames)} price histories")
