@@ -27,6 +27,7 @@ compute function can be unit-tested without them (see selftest_monitor.py).
 import os, json, time, datetime as dt
 import numpy as np
 import pandas as pd
+import industry as IND
 
 MIN_PRICE        = 3.0
 MIN_DOLLAR_VOL   = 20_000_000       # 1-day $-volume floor
@@ -242,9 +243,16 @@ def panel(frames, field):
     return pd.DataFrame({s: f[field] for s, f in frames.items()}).sort_index()
 
 def main():
-    universe = load_universe()            # {sym: industry}
+    universe = load_universe()            # {sym: industry (NASDAQ)}
     syms = sorted(universe.keys())
     print(f"Candidate names from screener (loose pre-filter): {len(syms)}")
+
+    # Reclassify industries to Morningstar (= Finviz / TC2000). Shares the same
+    # industry_map.json the dashboard populated earlier in the run, so most are
+    # already cached and this is quick; NASDAQ value is the fallback.
+    fb = {s: {"sector": "", "industry": universe[s]} for s in universe}
+    ind_map = IND.enrich(syms, fallback=fb, time_budget_s=900)
+    universe = {s: ind_map[s]["industry"] for s in syms}
     print(f"Fetching prices for {len(syms)} names + ^GSPC ...")
     frames = fetch_prices(syms)
     print(f"Got {len(frames)} price histories")

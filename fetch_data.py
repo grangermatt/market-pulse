@@ -30,6 +30,7 @@ import datetime as dt
 
 import numpy as np
 import pandas as pd
+import industry as IND
 
 # ----------------------------------------------------------------------
 # CONFIG
@@ -462,6 +463,16 @@ def build_payload(universe, metrics):
 
 def main():
     universe = load_universe()
+
+    # Reclassify sector/industry to the Morningstar scheme (= Finviz / TC2000),
+    # keeping NASDAQ's values as the fallback for anything Yahoo can't classify.
+    fb = {s: {"sector": universe[s]["sector"], "industry": universe[s]["industry"]}
+          for s in universe}
+    ind_map = IND.enrich(sorted(universe.keys()), fallback=fb, time_budget_s=1500)
+    for s in universe:
+        universe[s]["sector"] = ind_map[s]["sector"]
+        universe[s]["industry"] = ind_map[s]["industry"]
+
     syms = sorted(universe.keys())
     all_syms = syms + ETF_SP + ETF_EQWT + ETF_COUNTRY + ETF_GROUP
 
