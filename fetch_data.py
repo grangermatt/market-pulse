@@ -42,6 +42,14 @@ CHUNK            = 150               # tickers per Yahoo download call
 OUT_PATH         = "data/data.json"
 HOLDINGS_CACHE   = "etf_holdings.json"   # ETF top-holdings, refreshed weekly
 
+# Manual industry corrections for names the data source misclassifies.
+# (NASDAQ files solar-panel makers under "Semiconductors" — reclassify to Solar.)
+INDUSTRY_OVERRIDE = {
+    "FSLR": "Solar", "ENPH": "Solar", "SEDG": "Solar", "RUN": "Solar", "NOVA": "Solar",
+    "ARRY": "Solar", "SHLS": "Solar", "CSIQ": "Solar", "MAXN": "Solar", "JKS": "Solar",
+    "DQ": "Solar", "NXT": "Solar", "SPWR": "Solar", "SOL": "Solar", "FTCI": "Solar",
+}
+
 # Trailing-session lookbacks for each return column
 TIMEFRAMES = {"d1": 1, "w1": 5, "m1": 21, "m3": 63, "m6": 126, "m12": 252}
 
@@ -277,10 +285,11 @@ def build_universe():
             continue
         if (row.get("country") or "").strip() != "United States":
             continue  # drops ADRs / foreign domiciles
+        ind = (row.get("industry") or "").strip() or "Unknown"
         uni[sym] = {
             "name": row.get("name", sym),
             "sector": (row.get("sector") or "").strip() or "Unknown",
-            "industry": (row.get("industry") or "").strip() or "Unknown",
+            "industry": INDUSTRY_OVERRIDE.get(sym, ind),
             "marketcap": mcap,
         }
     if len(uni) < 500:
@@ -289,18 +298,10 @@ def build_universe():
 
 
 def load_universe():
-    """Use cached universe unless it's missing or stale."""
-    if os.path.exists(UNIVERSE_CACHE):
-        age = (time.time() - os.path.getmtime(UNIVERSE_CACHE)) / 86400
-        if age < UNIVERSE_MAX_AGE:
-            with open(UNIVERSE_CACHE) as f:
-                print(f"Universe cache is {age:.1f}d old — reusing it.")
-                return json.load(f)
-    print("Rebuilding universe from NASDAQ screener...")
+    """Always rebuild fresh (one quick screener call) so filters/overrides apply immediately."""
+    print("Building universe from NASDAQ screener...")
     uni = build_universe()
-    with open(UNIVERSE_CACHE, "w") as f:
-        json.dump(uni, f)
-    print(f"Universe rebuilt: {len(uni)} names.")
+    print(f"Universe: {len(uni)} names.")
     return uni
 
 

@@ -38,6 +38,13 @@ OUT_DAYS         = 335              # rows recomputed per run (~1.3yr seed); his
 OUT_PATH         = "data/monitor.json"
 BIG_DAY          = 300             # dark-green threshold for 4% up/down
 
+# Manual industry corrections (NASDAQ files solar makers under "Semiconductors")
+INDUSTRY_OVERRIDE = {
+    "FSLR": "Solar", "ENPH": "Solar", "SEDG": "Solar", "RUN": "Solar", "NOVA": "Solar",
+    "ARRY": "Solar", "SHLS": "Solar", "CSIQ": "Solar", "MAXN": "Solar", "JKS": "Solar",
+    "DQ": "Solar", "NXT": "Solar", "SPWR": "Solar", "SOL": "Solar", "FTCI": "Solar",
+}
+
 NASDAQ_URL = ("https://api.nasdaq.com/api/screener/stocks"
               "?tableonly=true&limit=10000&download=true")
 NASDAQ_HEADERS = {
@@ -192,25 +199,17 @@ def build_universe():
         # Loose pre-filter only; the real $20M universe is applied PER-DAY in compute_monitor
         if price < MIN_PRICE or price * vol < 8_000_000:
             continue
-        uni[sym] = (row.get("industry") or "").strip() or "—"
+        ind = (row.get("industry") or "").strip() or "—"
+        uni[sym] = INDUSTRY_OVERRIDE.get(sym, ind)
     if len(uni) < 500:
         raise RuntimeError(f"Monitor universe too small ({len(uni)})")
     return uni
 
 def load_universe():
-    if os.path.exists(UNIVERSE_CACHE):
-        if (time.time() - os.path.getmtime(UNIVERSE_CACHE)) / 86400 < UNIVERSE_MAX_AGE:
-            try:
-                with open(UNIVERSE_CACHE) as f:
-                    data = json.load(f)
-                if isinstance(data, dict) and data:   # ignore any old list-format cache
-                    return data
-            except Exception:
-                pass
+    """Always rebuild fresh so filters/overrides apply immediately (no stale cache)."""
+    print("Building monitor universe from NASDAQ screener...")
     uni = build_universe()
-    with open(UNIVERSE_CACHE, "w") as f:
-        json.dump(uni, f)
-    print(f"Monitor universe rebuilt: {len(uni)} names")
+    print(f"Monitor universe: {len(uni)} names")
     return uni
 
 def fetch_prices(symbols):
