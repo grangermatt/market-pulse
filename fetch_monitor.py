@@ -30,7 +30,7 @@ import pandas as pd
 
 MIN_PRICE        = 3.0
 MIN_DOLLAR_VOL   = 20_000_000       # 1-day $-volume floor
-UNIVERSE_CACHE   = "monitor_universe_v2.json"   # bumped: forces a rebuild with the new filter
+UNIVERSE_CACHE   = "monitor_universe_v3.json"   # bumped: forces a rebuild in the new dict format
 UNIVERSE_MAX_AGE = 7
 PRICE_PERIOD     = "400d"
 CHUNK            = 150
@@ -200,8 +200,13 @@ def build_universe():
 def load_universe():
     if os.path.exists(UNIVERSE_CACHE):
         if (time.time() - os.path.getmtime(UNIVERSE_CACHE)) / 86400 < UNIVERSE_MAX_AGE:
-            with open(UNIVERSE_CACHE) as f:
-                return json.load(f)
+            try:
+                with open(UNIVERSE_CACHE) as f:
+                    data = json.load(f)
+                if isinstance(data, dict) and data:   # ignore any old list-format cache
+                    return data
+            except Exception:
+                pass
     uni = build_universe()
     with open(UNIVERSE_CACHE, "w") as f:
         json.dump(uni, f)
