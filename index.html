@@ -51,7 +51,7 @@ tbody tr.grp:hover{background:rgba(0,200,255,.04)}
 tbody tr.grp.open{background:rgba(0,200,255,.06)}
 td{padding:6px 10px;text-align:right;white-space:nowrap}
 td:first-child,td.l{text-align:left}
-.gname{color:var(--text);font-weight:500}
+.gname{color:#f4f8fc;font-weight:600}
 .gname .arr{display:inline-block;width:12px;color:var(--text3);transition:transform .15s}
 tr.open .gname .arr{transform:rotate(90deg);color:var(--accent)}
 .cnt{color:var(--text3);font-size:10px}
@@ -263,7 +263,7 @@ function headerRow(cols,tabId){
 }
 
 // ---- cell renderers -----------------------------------------------------
-function perfCell(v,col){ return `<td style="${heat(v,col.max)}">${fpct(v)}</td>`; }
+function perfCell(v,col){ return `<td>${fpct(v)}</td>`; }
 function groupRows(rows,tab){
   let html='';
   rows.forEach((r,i)=>{
@@ -306,7 +306,7 @@ function etfRows(rows,cols){
     let h='<tr class="grp" style="cursor:default">';
     cols.forEach(c=>{
       if(c.k==='sym') h+=`<td class="l"><span class="tk sym" data-sym="${r.sym}">${r.sym}</span></td>`;
-      else if(c.k==='name') h+=`<td class="l" style="color:var(--text2)">${r.name||''}</td>`;
+      else if(c.k==='name') h+=`<td class="l" style="color:#f4f8fc">${r.name||''}</td>`;
       else if(c.k==='price') h+=`<td>${fprice(r.price)}</td>`;
       else h+=perfCell(r[c.k],c);
     });
@@ -358,7 +358,7 @@ function render(){
       h+=`<tr class="grp etfrow" data-ei="${i}" style="cursor:${hold?'pointer':'default'}">`;
       cols.forEach(c=>{
         if(c.k==='sym') h+=`<td class="l">${hold?'<span class="arr" style="color:var(--text3)">▸</span> ':''}<span class="tk sym" data-sym="${r.sym}">${r.sym}</span></td>`;
-        else if(c.k==='name') h+=`<td class="l" style="color:var(--text2)">${r.name||''}</td>`;
+        else if(c.k==='name') h+=`<td class="l" style="color:#f4f8fc">${r.name||''}</td>`;
         else if(c.k==='price') h+=`<td>${fprice(r.price)}</td>`;
         else h+=perfCell(r[c.k],c);
       });
