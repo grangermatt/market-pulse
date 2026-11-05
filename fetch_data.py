@@ -40,6 +40,7 @@ UNIVERSE_MAX_AGE = 7                 # days before the universe list is rebuilt
 PRICE_PERIOD     = "400d"            # enough history for 252-day windows
 CHUNK            = 150               # tickers per Yahoo download call
 OUT_PATH         = "data/data.json"
+HOLDINGS_CACHE   = "etf_holdings.json"   # ETF top-holdings, refreshed weekly
 
 # Trailing-session lookbacks for each return column
 TIMEFRAMES = {"d1": 1, "w1": 5, "m1": 21, "m3": 63, "m6": 126, "m12": 252}
@@ -343,6 +344,53 @@ def fetch_prices(symbols):
 # ======================================================================
 # ASSEMBLY
 # ======================================================================
+def fetch_holdings(etf_syms):
+    """Top holdings per ETF via yfinance funds_data (graceful if unavailable)."""
+    import yfinance as yf
+    out = {}
+    for s in etf_syms:
+        try:
+            td = yf.Ticker(s).funds_data.top_holdings
+            rows = []
+            for sym, r in td.head(10).iterrows():
+                try:
+                    w = float(r.get("Holding Percent"))
+                except Exception:
+                    w = 0.0
+                if w <= 1.5:          # yfinance gives a fraction -> percent
+                    w *= 100
+                try:
+                    nm = str(r.get("Name") or "")
+                except Exception:
+                    nm = ""
+                rows.append({"sym": str(sym), "name": nm, "w": round(w, 2)})
+            if rows:
+                out[s] = rows
+        except Exception:
+            pass
+        time.sleep(0.25)
+    return out
+
+
+def load_holdings(etf_syms):
+    if os.path.exists(HOLDINGS_CACHE):
+        if (time.time() - os.path.getmtime(HOLDINGS_CACHE)) / 86400 < 7:
+            try:
+                with open(HOLDINGS_CACHE) as f:
+                    return json.load(f)
+            except Exception:
+                pass
+    print(f"Fetching ETF holdings for {len(etf_syms)} ETFs...")
+    h = fetch_holdings(etf_syms)
+    try:
+        with open(HOLDINGS_CACHE, "w") as f:
+            json.dump(h, f)
+    except Exception:
+        pass
+    print(f"  holdings found for {len(h)} ETFs")
+    return h
+
+
 def etf_rows(etf_syms, metrics):
     rows = []
     for s in etf_syms:
@@ -424,6 +472,7 @@ def main():
     metrics = {s: m for s, m in metrics.items() if m}
 
     payload = build_payload(universe, metrics)
+    payload["etf_holdings"] = load_holdings(sorted(set(ETF_SP + ETF_EQWT + ETF_COUNTRY + ETF_GROUP)))
 
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
     with open(OUT_PATH, "w") as f:

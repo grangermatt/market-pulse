@@ -52,7 +52,7 @@ NASDAQ_HEADERS = {
 def _cnt(mask):            # count True across tickers, per day
     return mask.sum(axis=1)
 
-def compute_monitor(close, high, low, volume, spx=None, out_days=OUT_DAYS, big_day=BIG_DAY):
+def compute_monitor(close, high, low, volume, spx=None, industry=None, out_days=OUT_DAYS, big_day=BIG_DAY):
     """
     close/high/low/volume: DataFrames indexed by date (asc), columns = tickers.
     spx: Series of S&P 500 close indexed by date (optional).
@@ -136,9 +136,17 @@ def compute_monitor(close, high, low, volume, spx=None, out_days=OUT_DAYS, big_d
 
     # today's name lists (latest day) for the 4% drill-downs
     d0 = idx[-1]
+    ind = industry or {}
+    def _mv(sym):
+        rr, vv, cc = ret1.loc[d0, sym], volume.loc[d0, sym], close.loc[d0, sym]
+        return {"sym": sym,
+                "pct":  None if pd.isna(rr) else round(float(rr), 2),
+                "vol":  None if pd.isna(vv) else int(vv),
+                "dvol": None if (pd.isna(vv) or pd.isna(cc)) else int(cc * vv),
+                "ind":  ind.get(sym, "—")}
     today = {
-        "up4": sorted([c for c in close.columns if bool(up4m.loc[d0, c])]),
-        "dn4": sorted([c for c in close.columns if bool(dn4m.loc[d0, c])]),
+        "up4": [_mv(c) for c in sorted(close.columns) if bool(up4m.loc[d0, c])],
+        "dn4": [_mv(c) for c in sorted(close.columns) if bool(dn4m.loc[d0, c])],
     }
 
     def dist(s):
@@ -166,7 +174,7 @@ def build_universe():
     r = requests.get(NASDAQ_URL, headers=NASDAQ_HEADERS, timeout=60)
     r.raise_for_status()
     rows = r.json()["data"]["rows"]
-    uni = []
+    uni = {}
     for row in rows:
         sym = (row.get("symbol") or "").strip().upper()
         if not sym or any(ch in sym for ch in (".", "^", "/", "~", " ")):
@@ -184,8 +192,7 @@ def build_universe():
         # Loose pre-filter only; the real $20M universe is applied PER-DAY in compute_monitor
         if price < MIN_PRICE or price * vol < 8_000_000:
             continue
-        uni.append(sym)
-    uni = sorted(set(uni))
+        uni[sym] = (row.get("industry") or "").strip() or "—"
     if len(uni) < 500:
         raise RuntimeError(f"Monitor universe too small ({len(uni)})")
     return uni
@@ -231,7 +238,8 @@ def panel(frames, field):
     return pd.DataFrame({s: f[field] for s, f in frames.items()}).sort_index()
 
 def main():
-    syms = load_universe()
+    universe = load_universe()            # {sym: industry}
+    syms = sorted(universe.keys())
     print(f"Candidate names from screener (loose pre-filter): {len(syms)}")
     print(f"Fetching prices for {len(syms)} names + ^GSPC ...")
     frames = fetch_prices(syms)
@@ -249,7 +257,7 @@ def main():
     low    = panel(frames, "Low")
     volume = panel(frames, "Volume")
 
-    payload = compute_monitor(close, high, low, volume, spx)
+    payload = compute_monitor(close, high, low, volume, spx, industry=universe)
 
     # Accumulate history: keep every past day already on file, refresh the
     # recomputed window, so the record grows forward on the live universe.
