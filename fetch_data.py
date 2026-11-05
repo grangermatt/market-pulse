@@ -53,6 +53,24 @@ ETF_COUNTRY = ["EWJ", "EWY", "INDA", "MCHI", "FXI", "EWH", "EWU", "EWQ", "EWG",
                "EWZ", "EWT", "EWA", "EWC", "EWL", "EWP", "EWS", "TUR", "EWW",
                "EWI", "EWN", "EWD", "EWO", "EPHE", "THD", "VNM", "EIDO"]
 
+# Group / thematic / industry ETFs (the "Group ETFs" tab)
+ETF_GROUP = [
+    "WGMI", "BITQ", "BLOK",
+    "USO", "XOP", "OIH", "FCG", "UNG", "URA", "URNM", "NLR", "IXC",
+    "TAN", "ICLN", "PBW", "LIT", "GRID",
+    "SMH", "SOXX", "XSD", "FOTO", "DRAM", "IGV", "WCLD", "CLOU", "SKYY", "FDN",
+    "AIQ", "BOTZ", "ROBO", "QTUM",
+    "CIBR", "HACK", "FINX", "ARKF",
+    "XBI", "IBB", "ARKG", "IHI", "PPH",
+    "ITB", "XHB", "PAVE", "XME", "COPX", "GDX", "GDXJ", "SIL", "WOOD", "MOO",
+    "PHO", "REMX",
+    "KRE", "KBE", "IAI",
+    "JETS", "IYT", "ITA", "XAR",
+    "XRT", "IBUY", "ESPO", "HERO", "MSOS",
+    "ARKK", "IPO", "FFTY",
+    "KWEB", "CQQQ",
+]
+
 # Human-readable label for each ETF (shown in the Name / Country column)
 ETF_NAMES = {
     # S&P style + sector SPDRs
@@ -77,6 +95,32 @@ ETF_NAMES = {
     "EWN": "Netherlands", "EWD": "Sweden", "EWO": "Austria", "EPHE": "Philippines",
     "THD": "Thailand", "VNM": "Vietnam", "EIDO": "Indonesia",
 }
+ETF_NAMES.update({
+    "WGMI": "CoinShares Bitcoin Mining", "BITQ": "Bitwise Crypto Industry", "BLOK": "Amplify Blockchain",
+    "USO": "US Oil Fund", "XOP": "SPDR Oil & Gas E&P", "OIH": "VanEck Oil Services",
+    "FCG": "First Trust Natural Gas", "UNG": "US Natural Gas Fund", "URA": "Global X Uranium",
+    "URNM": "Sprott Uranium Miners", "NLR": "VanEck Uranium & Nuclear", "IXC": "iShares Global Energy",
+    "TAN": "Invesco Solar", "ICLN": "iShares Clean Energy", "PBW": "Invesco WilderHill Clean",
+    "LIT": "Global X Lithium & Battery", "GRID": "First Trust Clean Energy Infra",
+    "SMH": "VanEck Semiconductor", "SOXX": "iShares Semiconductor", "XSD": "SPDR Semiconductor",
+    "FOTO": "Tuttle Photonics", "DRAM": "Roundhill Memory", "IGV": "iShares Expanded Tech-Software",
+    "WCLD": "WisdomTree Cloud", "CLOU": "Global X Cloud", "SKYY": "First Trust Cloud",
+    "FDN": "First Trust Dow Internet", "AIQ": "Global X Artificial Intelligence",
+    "BOTZ": "Global X Robotics & AI", "ROBO": "ROBO Global Robotics", "QTUM": "Defiance Quantum",
+    "CIBR": "First Trust Cybersecurity", "HACK": "Amplify Cybersecurity", "FINX": "Global X FinTech",
+    "ARKF": "ARK Fintech Innovation", "XBI": "SPDR Biotech", "IBB": "iShares Biotechnology",
+    "ARKG": "ARK Genomic Revolution", "IHI": "iShares US Medical Devices", "PPH": "VanEck Pharmaceutical",
+    "ITB": "iShares US Home Construction", "XHB": "SPDR Homebuilders", "PAVE": "Global X US Infrastructure",
+    "XME": "SPDR Metals & Mining", "COPX": "Global X Copper Miners", "GDX": "VanEck Gold Miners",
+    "GDXJ": "VanEck Junior Gold Miners", "SIL": "Global X Silver Miners", "WOOD": "iShares Timber & Forestry",
+    "MOO": "VanEck Agribusiness", "PHO": "Invesco Water Resources", "REMX": "VanEck Rare Earth",
+    "KRE": "SPDR Regional Banking", "KBE": "SPDR Bank", "IAI": "iShares US Broker-Dealers",
+    "JETS": "US Global Jets", "IYT": "iShares Transportation", "ITA": "iShares Aerospace & Defense",
+    "XAR": "SPDR Aerospace & Defense", "XRT": "SPDR Retail", "IBUY": "Amplify Online Retail",
+    "ESPO": "VanEck Video Gaming & eSports", "HERO": "Global X Video Games", "MSOS": "AdvisorShares US Cannabis",
+    "ARKK": "ARK Innovation", "IPO": "Renaissance IPO", "FFTY": "Innovator IBD 50",
+    "KWEB": "KraneShares China Internet", "CQQQ": "Invesco China Technology",
+})
 
 NASDAQ_URL = ("https://api.nasdaq.com/api/screener/stocks"
               "?tableonly=true&limit=10000&download=true")
@@ -359,6 +403,7 @@ def build_payload(universe, metrics):
             "sp": etf_rows(ETF_SP, metrics),
             "eqwt": etf_rows(ETF_EQWT, metrics),
             "country": etf_rows(ETF_COUNTRY, metrics),
+            "group": etf_rows(ETF_GROUP, metrics),
         },
         "new_high_low": {"by_industry": nhl, "totals": totals},
         "top_gainers": gainers,
@@ -369,7 +414,7 @@ def build_payload(universe, metrics):
 def main():
     universe = load_universe()
     syms = sorted(universe.keys())
-    all_syms = syms + ETF_SP + ETF_EQWT + ETF_COUNTRY
+    all_syms = syms + ETF_SP + ETF_EQWT + ETF_COUNTRY + ETF_GROUP
 
     print(f"Fetching prices for {len(all_syms)} symbols...")
     frames = fetch_prices(all_syms)
