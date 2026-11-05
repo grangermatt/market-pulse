@@ -250,7 +250,8 @@ def aggregate(metrics_by_ticker, key_of, min_members=3):
         row = {"name": name, "count": len(members)}
         for tf in cols:
             vals = [m[tf] for _, m in members if m.get(tf) is not None]
-            row[tf] = round(float(np.mean(vals)), 2) if vals else None
+            # median, not mean: one name can't spike a small industry's reading
+            row[tf] = round(float(np.median(vals)), 2) if vals else None
         row["new_highs"] = sum(1 for _, m in members if m.get("new_high"))
         row["new_lows"]  = sum(1 for _, m in members if m.get("new_low"))
         # members sorted by 1-month perf, strongest first
