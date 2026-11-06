@@ -285,8 +285,8 @@ def build_universe():
             continue
         if mcap < MIN_MARKET_CAP:
             continue
-        if (row.get("country") or "").strip() != "United States":
-            continue  # drops ADRs / foreign domiciles
+        # No country filter: include ADRs / foreign-domiciled names >= $800M,
+        # matching Ariel's "any stock over $800M market cap, that's all."
         ind = (row.get("industry") or "").strip() or "Unknown"
         uni[sym] = {
             "name": row.get("name", sym),
@@ -446,8 +446,8 @@ def build_payload(universe, metrics):
     return {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "universe_size": len(stock_metrics),
-        "params": {"min_market_cap": MIN_MARKET_CAP, "adr": False,
-                   "country": "United States"},
+        "params": {"min_market_cap": MIN_MARKET_CAP, "includes_adr": True,
+                   "country": "all"},
         "tabs": {
             "themes": themes,
             "groups": groups,

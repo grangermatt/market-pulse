@@ -100,10 +100,10 @@ def compute_monitor(close, high, low, volume, spx=None, industry=None, out_days=
     ext   = (close - sma50) >= (10 * atr14)
     above50 = close > sma50
 
-    # Per-day universe membership: 20-day avg dollar-volume >= floor AND price >= floor,
-    # applied to every count. This tracks the liquid set day by day and does NOT balloon
-    # on a high-volume session the way a single-day dollar-volume snapshot would.
-    inuni = (close.rolling(20).mean() * volume.rolling(20).mean() >= MIN_DOLLAR_VOL) & (close >= MIN_PRICE)
+    # Per-day universe membership: single-day dollar-volume >= floor AND price >= floor,
+    # matching the user's TC2000 scan (1-day $20M). Recomputed each day, so the universe
+    # (and the counts) float with daily volume, as TC2000's does.
+    inuni = (close * volume >= MIN_DOLLAR_VOL) & (close >= MIN_PRICE)
 
     up4m, dn4m = up4 & inuni, dn4 & inuni
     up4c, dn4c = _cnt(up4m), _cnt(dn4m)
@@ -188,10 +188,10 @@ def build_universe():
         if not sym or any(ch in sym for ch in (".", "^", "/", "~", " ")):
             continue  # drop warrants / units / preferreds
         name = (row.get("name") or "").lower()
-        if any(k in name for k in (" etf", " etn", " fund", "depositary",
+        if any(k in name for k in (" etf", " etn", " fund",
                                    "acquisition corp", " warrant", " unit", " right",
                                    " preferred", "pfd")):
-            continue            # drop non-common instruments; ADR common equity kept
+            continue            # drop funds/SPACs/warrants/preferreds; ADRs (depositary receipts) KEPT
         try:
             price = float((row.get("lastsale") or "").replace("$", "").replace(",", ""))
             vol   = float(str(row.get("volume") or "0").replace(",", ""))
