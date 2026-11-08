@@ -100,10 +100,14 @@ def compute_monitor(close, high, low, volume, spx=None, industry=None, out_days=
     ext   = (close - sma50) >= (10 * atr14)
     above50 = close > sma50
 
-    # Per-day universe membership: single-day dollar-volume >= floor AND price >= floor,
-    # matching the user's TC2000 scan (1-day $20M). Recomputed each day, so the universe
-    # (and the counts) float with daily volume, as TC2000's does.
-    inuni = (close * volume >= MIN_DOLLAR_VOL) & (close >= MIN_PRICE)
+    # Universe membership: a name is "liquid" if its dollar volume clears the floor on a
+    # typical recent day. Use the 3-day MEDIAN of dollar volume (not the single latest bar)
+    # so the universe can't collapse when Yahoo's newest daily bar is still settling with
+    # partial volume — while staying ~TC2000's 1-day $20M count on settled data (the median
+    # of 3 days tracks a typical day, and ignores one partial/low bar).
+    dvol = close * volume
+    dvol_med = dvol.rolling(3, min_periods=1).median()
+    inuni = (dvol_med >= MIN_DOLLAR_VOL) & (close >= MIN_PRICE)
 
     up4m, dn4m = up4 & inuni, dn4 & inuni
     up4c, dn4c = _cnt(up4m), _cnt(dn4m)
