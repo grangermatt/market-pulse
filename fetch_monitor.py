@@ -69,8 +69,11 @@ def compute_monitor(close, high, low, volume, spx=None, industry=None, out_days=
     ret1  = close.pct_change() * 100
     vprev = volume.shift(1)
 
-    up4 = (ret1 >= 4)  & (volume >= 100_000) & (volume > vprev)
-    dn4 = (ret1 <= -4) & (volume >= 100_000) & (volume > vprev)
+    # TEST (isolating the V>V1 variable vs Ariel): the volume-expansion filter
+    # (volume > vprev) is removed from the 4% counts. To revert to the strict
+    # Stockbee definition, add back  & (volume > vprev)  to both lines.
+    up4 = (ret1 >= 4)  & (volume >= 100_000)
+    dn4 = (ret1 <= -4) & (volume >= 100_000)
 
     minc65, maxc65 = close.rolling(65).min(), close.rolling(65).max()
     minc34, maxc34 = close.rolling(34).min(), close.rolling(34).max()
