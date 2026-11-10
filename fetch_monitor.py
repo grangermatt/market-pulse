@@ -29,9 +29,8 @@ import numpy as np
 import pandas as pd
 import industry as IND
 
-MIN_PRICE        = 3.0
-MIN_DOLLAR_VOL   = 20_000_000       # 1-day $-volume floor
-UNIVERSE_CACHE   = "monitor_universe_v3.json"   # bumped: forces a rebuild in the new dict format
+MIN_MARKET_CAP   = 800_000_000      # $800M market-cap universe (matches Ariel)
+UNIVERSE_CACHE   = "monitor_universe_v4.json"   # bumped: forces a rebuild with the $800M filter
 UNIVERSE_MAX_AGE = 7
 PRICE_PERIOD     = "400d"
 CHUNK            = 150
@@ -72,25 +71,24 @@ def compute_monitor(close, high, low, volume, spx=None, industry=None, out_days=
     # TEST (isolating the V>V1 variable vs Ariel): the volume-expansion filter
     # (volume > vprev) is removed from the 4% counts. To revert to the strict
     # Stockbee definition, add back  & (volume > vprev)  to both lines.
-    up4 = (ret1 >= 4)  & (volume >= 100_000)
-    dn4 = (ret1 <= -4) & (volume >= 100_000)
+    # Pure price breadth (matches Ariel): no volume filters at all.
+    up4 = (ret1 >= 4)
+    dn4 = (ret1 <= -4)
 
     minc65, maxc65 = close.rolling(65).min(), close.rolling(65).max()
     minc34, maxc34 = close.rolling(34).min(), close.rolling(34).max()
-    avgc20 = close.rolling(20).mean()
-    avgv20 = volume.rolling(20).mean()
-    liq    = (avgc20 * avgv20) >= 250_000
     c20    = close.shift(20)
     ret20  = (close - c20) / c20 * 100
 
-    up25q = (((close - minc65) / (minc65 + 0.01)) * 100 >= 25) & liq
-    dn25q = (((close - maxc65) / (maxc65 + 0.01)) * 100 <= -25) & liq
-    up13  = (((close - minc34) / (minc34 + 0.01)) * 100 >= 13) & liq
-    dn13  = (((close - maxc34) / (maxc34 + 0.01)) * 100 <= -13) & liq
-    up25m = (c20 >= 5) & liq & (ret20 >= 25)
-    dn25m = (c20 >= 5) & liq & (ret20 <= -25)
-    up50m = (c20 >= 5) & liq & (ret20 >= 50)
-    dn50m = (c20 >= 5) & liq & (ret20 <= -50)
+    # Pure price thresholds — no liquidity/volume/price floors (matches Ariel).
+    up25q = ((close - minc65) / (minc65 + 0.01)) * 100 >= 25
+    dn25q = ((close - maxc65) / (maxc65 + 0.01)) * 100 <= -25
+    up13  = ((close - minc34) / (minc34 + 0.01)) * 100 >= 13
+    dn13  = ((close - maxc34) / (maxc34 + 0.01)) * 100 <= -13
+    up25m = ret20 >= 25
+    dn25m = ret20 <= -25
+    up50m = ret20 >= 50
+    dn50m = ret20 <= -50
 
     # True Range -> ATR14 ; extended = close >= 50-MA + 10*ATR14
     pc = close.shift(1)
@@ -103,14 +101,10 @@ def compute_monitor(close, high, low, volume, spx=None, industry=None, out_days=
     ext   = (close - sma50) >= (10 * atr14)
     above50 = close > sma50
 
-    # Universe membership: a name is "liquid" if its dollar volume clears the floor on a
-    # typical recent day. Use the 3-day MEDIAN of dollar volume (not the single latest bar)
-    # so the universe can't collapse when Yahoo's newest daily bar is still settling with
-    # partial volume — while staying ~TC2000's 1-day $20M count on settled data (the median
-    # of 3 days tracks a typical day, and ignores one partial/low bar).
-    dvol = close * volume
-    dvol_med = dvol.rolling(3, min_periods=1).median()
-    inuni = (dvol_med >= MIN_DOLLAR_VOL) & (close >= MIN_PRICE)
+    # Universe membership = in the $800M market-cap universe (built in build_universe)
+    # and having price data that day. No dollar-volume or price gate — matches Ariel's
+    # "any stock over $800M market cap, that's all."
+    inuni = close.notna()
 
     up4m, dn4m = up4 & inuni, dn4 & inuni
     up4c, dn4c = _cnt(up4m), _cnt(dn4m)
@@ -174,7 +168,7 @@ def compute_monitor(close, high, low, volume, spx=None, industry=None, out_days=
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "universe_size": int(uni.iloc[-1]),
         "big_day": big_day,
-        "params": {"min_price": MIN_PRICE, "min_dollar_vol": MIN_DOLLAR_VOL,
+        "params": {"min_market_cap": MIN_MARKET_CAP, "volume_filters": False,
                    "includes_adr": True},
         "rows": rows,
         "today_members": today,
@@ -195,17 +189,19 @@ def build_universe():
         if not sym or any(ch in sym for ch in (".", "^", "/", "~", " ")):
             continue  # drop warrants / units / preferreds
         name = (row.get("name") or "").lower()
-        if any(k in name for k in (" etf", " etn", " fund",
+        # Drop ETFs/ETNs/SPACs/warrants/units/rights/preferreds; KEEP closed-end funds
+        # and ADRs (Ariel's $800M universe includes both).
+        if any(k in name for k in (" etf", " etn",
                                    "acquisition corp", " warrant", " unit", " right",
                                    " preferred", "pfd")):
-            continue            # drop funds/SPACs/warrants/preferreds; ADRs (depositary receipts) KEPT
+            continue
+        # Universe = market cap >= $800M, matching Ariel ("any stock over $800M, that's all").
+        raw = (row.get("marketCap") or "").replace("$", "").replace(",", "").strip()
         try:
-            price = float((row.get("lastsale") or "").replace("$", "").replace(",", ""))
-            vol   = float(str(row.get("volume") or "0").replace(",", ""))
+            mcap = float(raw)
         except ValueError:
             continue
-        # Loose pre-filter only; the real $20M universe is applied PER-DAY in compute_monitor
-        if price < MIN_PRICE or price * vol < 8_000_000:
+        if mcap < MIN_MARKET_CAP:
             continue
         ind = (row.get("industry") or "").strip() or "—"
         uni[sym] = INDUSTRY_OVERRIDE.get(sym, ind)
